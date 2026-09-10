@@ -6,15 +6,16 @@ other role using profiles computed from local Riot match records.
 
 ## Product contract
 
-The finder supplies:
+The requester supplies:
 
-- A Summoner ID, PUUID, or Riot game name.
 - Primary queue role: Top, Jungle, Mid, Bottom, Support, or Fill.
 - Optional requested champion for each open role.
 - Optional rank constraints and natural-language team preference.
 
-For a fixed primary role, the API returns candidates for the other four slots. For **Fill**, it evaluates all five
-possible finder assignments and returns the strongest complete lineup, along with the other scenario scores.
+The requester is a reserved team slot, not a candidate profile. For a fixed primary role, the UI returns candidates
+for the other four slots. For **Fill**, it evaluates all five possible requester assignments and returns the strongest
+set of teammate recommendations, along with the other scenario scores. The API retains an optional `finder` identifier
+only for clients that want to exclude that player from candidates or infer their tier from an existing profile.
 
 Candidates are hard-filtered by their most recorded primary role and rank eligibility. Candidates are ranked using:
 
@@ -65,7 +66,7 @@ uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8001
 Start Streamlit in another terminal:
 
 ```powershell
-streamlit run src/ui/app.py
+.\.venv\Scripts\streamlit.exe run src/ui/app.py
 ```
 
 API documentation is available at `http://127.0.0.1:8001/docs`.

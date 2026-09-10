@@ -1,7 +1,17 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import requests
 import streamlit as st
+
+# Streamlit executes this file as a script, so its directory (src/ui) can be the
+# only project path available to Python. Add the repository root before importing
+# the shared application package.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import API_URL
 
@@ -18,7 +28,7 @@ st.session_state.setdefault("submitted_preference", "")
 
 st.title("LoL role queue team builder")
 st.caption(
-    "Choose the finder’s primary queue role. The system fills every other role with candidates derived only from local match records."
+    "Choose your role. The system recommends real players for each of the other four positions."
 )
 
 primary_role_label = st.selectbox(
@@ -31,22 +41,24 @@ primary_role = ROLE_LABELS[primary_role_label]
 open_roles = [role for role in DISPLAY_ROLE if role != primary_role] if primary_role != "FILL" else list(DISPLAY_ROLE)[:-1]
 
 with st.form("team_builder_form"):
-    identity_col, rank_col, settings_col = st.columns(3, vertical_alignment="bottom")
-    with identity_col:
-        finder = st.text_input(
-            "Finder identity",
-            placeholder="Summoner ID, PUUID, or Riot game name",
-        )
-    with rank_col:
+    tier_col, division_col, settings_col = st.columns(3, vertical_alignment="bottom")
+    with tier_col:
         tier_label = st.selectbox(
-            "Rank tier",
-            ["Use finder profile", "IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"],
+            "Your rank tier",
+            ["No rank filter", "IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"],
+            help="Choose a tier to recommend nearby-ranked teammates, or leave rank unrestricted.",
+        )
+    with division_col:
+        division_label = st.selectbox(
+            "Your division",
+            ["Any division", "IV", "III", "II", "I"],
+            help="Optionally require recommended teammates to have the same recorded division.",
         )
     with settings_col:
         candidates_per_role = st.slider("Candidates per open role", 1, 5, 3)
         max_tier_gap = st.slider("Maximum tier gap", 0, 3, 1)
 
-    with st.expander("Optional target champions for open roles", expanded=False):
+    with st.expander("Optional target champions for teammate roles", expanded=False):
         st.caption("Specify a champion only when you want that role filled by someone with recorded history on it.")
         champion_columns = st.columns(2)
         target_champions: dict[str, str] = {}
@@ -73,10 +85,11 @@ with st.form("team_builder_form"):
 
 if submitted:
     payload = {
-        "finder": finder or None,
+        "finder": None,
         "primary_role": primary_role,
         "target_champions": target_champions,
-        "tier": None if tier_label == "Use finder profile" else tier_label,
+        "tier": None if tier_label == "No rank filter" else tier_label,
+        "rank": None if division_label == "Any division" else division_label,
         "preference": preference,
         "candidates_per_role": candidates_per_role,
         "max_tier_gap": max_tier_gap,
@@ -97,9 +110,9 @@ if data:
     team = data["team"]
     st.divider()
     header = st.container(horizontal=True, horizontal_alignment="distribute", vertical_alignment="center")
-    header.subheader("Recommended lineup")
+    header.subheader("Recommended teammates")
     if team.get("team_fit_score") is not None:
-        header.metric("Average team-fit score", f"{team['team_fit_score']:.1f}")
+        header.metric("Average candidate fit", f"{team['team_fit_score']:.1f}")
 
     if team.get("requested_primary_role") == "FILL":
         st.info(
@@ -110,15 +123,11 @@ if data:
     elif data["status"] == "no_matches":
         st.warning(data["message"])
 
-    finder_info = team["finder"]
-    with st.container(border=True):
-        st.markdown(f"### {DISPLAY_ROLE[team['finder_primary_role']]} — finder")
-        finder_name = finder_info.get("player_name") or finder_info.get("summoner_id") or "Unresolved finder"
-        st.write(finder_name)
-        if finder_info.get("profile_found"):
-            st.caption(" ".join(filter(None, [finder_info.get("tier"), finder_info.get("rank")])))
-
-    st.subheader("Open role recommendations")
+    st.caption(
+        f"Your reserved role: **{DISPLAY_ROLE[team['finder_primary_role']]}**. "
+        "Only the other four team positions are shown below."
+    )
+    st.subheader("Recommended teammates by role")
     for slot in team["slots"]:
         role_name = DISPLAY_ROLE[slot["role"]]
         target = f" · requested champion: {slot['target_champion']}" if slot.get("target_champion") else ""
