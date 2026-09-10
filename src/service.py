@@ -5,7 +5,7 @@ from functools import lru_cache
 
 import pandas as pd
 
-from src.config import CHROMA_DIR, DUO_DB_PATH, PROFILE_PATH, XGB_MODEL_PATH
+from src.config import CHROMA_DIR, PROFILE_PATH
 from src.rag.vector_store import RealPlayerVectorStore
 from src.recsys.engine import RecommendationEngine
 
@@ -27,7 +27,7 @@ def get_runtime() -> Runtime:
     store = RealPlayerVectorStore(CHROMA_DIR)
     if store.collection.count() != len(profiles):
         store.rebuild(profiles)
-    return Runtime(profiles, store, RecommendationEngine(None, profiles, DUO_DB_PATH, XGB_MODEL_PATH))
+    return Runtime(profiles, store, RecommendationEngine(profiles))
 
 
 def resolve_player_id(profiles: pd.DataFrame, identity: str | None) -> str | None:

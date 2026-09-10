@@ -1,21 +1,43 @@
-# Production LoL Matchmaker & Tactical Scout
+# League of Legends Role Queue Team Builder
 
-A real-data-only teammate recommender built from local Riot Match-V5 records. It aggregates recorded player performance, indexes fact-grounded profile narratives in ChromaDB, scores compatibility and observed duo outcomes, exposes FastAPI endpoints, and renders results in Streamlit.
+A real-data-only system that fills a League player’s open team roles. The finder queues as **Top, Jungle, Mid,
+Bottom, Support, or Fill**. The engine reserves the finder’s assigned role and ranks authentic candidates for every
+other role using profiles computed from local Riot match records.
 
-## Data contract
+## Product contract
 
-Put Riot API CSV, JSON, JSONL, or NDJSON files in `data/`. The loader supports:
+The finder supplies:
 
-- Riot Match-V5 objects containing `metadata.matchId` and `info.participants`.
-- Wide CSV exports with columns such as `participant0SummonerId`, `participant0ChampionName`, and `participant0Win`.
-- Flat participant tables using snake_case or Riot field names.
-- Rank tables keyed by `puuid`, and match-rank tables keyed by `matchId`.
+- A Summoner ID, PUUID, or Riot game name.
+- Primary queue role: Top, Jungle, Mid, Bottom, Support, or Fill.
+- Optional requested champion for each open role.
+- Optional rank constraints and natural-language team preference.
 
-The participant facts used are `summoner_id`, `tier`, `rank`, `role`, `champion_name`, `kills`, `deaths`, `assists`, `vision_score`, `gold_earned`, `damage_dealt`, and `win`. The loader joins tier metadata when it is available, preserves unavailable values as missing, and never creates a row or recommendation to fill a gap. Overlapping JSONL and CSV exports are deduplicated by `(match_id, summoner_id)`.
+For a fixed primary role, the API returns candidates for the other four slots. For **Fill**, it evaluates all five
+possible finder assignments and returns the strongest complete lineup, along with the other scenario scores.
 
-`data/processed/player_profiles.jsonl` is derived output. It is never used as a raw source and is rebuilt from match facts.
+Candidates are hard-filtered by their most recorded primary role and rank eligibility. Candidates are ranked using:
 
-For this repository, `match_data.jsonl` and `matchData.csv` are duplicate representations of the same Riot matches. The production preprocessor intentionally reads the smaller wide CSV and skips the 8.2 GB JSONL. It selects only required participant columns, processes 100 matches at a time, and restricts recommendation profiles to the real ranked PUUID cohort in `players_8-14-25.csv`. This avoids indexing thousands of one-match bystanders while preserving authentic candidates.
+- Role-relative recorded experience.
+- Role-relative historical performance.
+- Rank proximity.
+- Historical affinity for an optionally requested champion.
+- Chroma retrieval similarity for an optional natural-language preference.
+
+Missing data never triggers fabricated candidates or fallback recommendations.
+
+## Real-data contract
+
+Place Riot API CSV, JSON, JSONL, or NDJSON exports in `data/`. Supported sources include nested Match-V5 objects,
+wide participant CSV exports, flat participant tables, PUUID rank tables, and match-rank tables.
+
+The production preprocessor streams `data/matchData.csv` in bounded chunks, restricts profiles to the ranked PUUID
+cohort, writes `data/processed/player_profiles.jsonl`, and indexes the computed player narratives in `.chroma/`.
+It does not load the large raw export into memory.
+
+```powershell
+python -m src.data.preprocess_large --chunk-size 100
+```
 
 ## Setup
 
@@ -28,58 +50,70 @@ python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-To enable tactical scout reports, set `OPENAI_API_KEY` in your environment. The integration uses the OpenAI Responses API with only the selected candidate's computed facts in its prompt. Without a key, `/scout` returns an explicit configuration error; it does not generate substitute text. See the [official Responses API reference](https://developers.openai.com/api/reference/resources/responses/methods/create).
-
-## Build the real-data index
-
-```powershell
-python -m src.data.preprocess_large --chunk-size 100
-```
-
-This bounded-memory command streams `data/matchData.csv`, writes `data/processed/player_profiles.jsonl`, aggregates observed ranked-player duo outcomes in `data/processed/duo_synergy.sqlite`, records counts in `data/processed/manifest.json`, and rebuilds `.chroma/` in batches of 128 profiles. The deterministic 768-feature hashing embedder requires no model download or fitting corpus in memory.
-
-Train the optional requested XGBoost compatibility layer from the compact duo table (single-threaded; no raw-data scan):
-
-```powershell
-python -m src.recsys.xgb_model
-```
-
-When `data/processed/compatibility_xgb.json` exists, its real historical duo prediction is blended with the matrix similarity score. If it is absent, deterministic scoring continues; candidates are never fabricated.
-
-Normal API and UI startup read only these compact artifacts. They never rescan the raw CSV or JSONL.
+To enable optional tactical scout reports, set `OPENAI_API_KEY`. The LLM receives only the selected real profile,
+requested role, requested champion, and user preference. Without a key, `/scout` returns an explicit configuration
+error and never substitutes invented text.
 
 ## Run
 
-In one terminal:
+Start FastAPI on the project’s configured port:
 
 ```powershell
-uvicorn src.api.main:app --reload
+uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
-In another:
+Start Streamlit in another terminal:
 
 ```powershell
 streamlit run src/ui/app.py
 ```
 
-API documentation is available at `http://127.0.0.1:8000/docs`.
+API documentation is available at `http://127.0.0.1:8001/docs`.
 
-### Endpoints
+## API
 
-- `GET /health` reports loaded real match and profile counts.
-- `POST /recommend` accepts identity, role, champion, tier/division, preference text, and result count.
-- `POST /scout` generates a fact-grounded tactical report for an existing real candidate.
+- `GET /health` reports the loaded real profiles and counts by primary role.
+- `POST /team/recommend` fills the finder’s four open role slots.
+- `POST /recommend` is a deprecated alias using the same team-building request.
+- `POST /scout` generates a fact-grounded report for one candidate in a requested role slot.
 
-When filtering or retrieval leaves no eligible player, `/recommend` returns:
+Example request:
 
 ```json
 {
-  "status": "no_matches",
-  "message": "No matching real candidates found",
-  "count": 0,
-  "candidates": []
+  "finder": "Example Riot Name",
+  "primary_role": "MID",
+  "target_champions": {
+    "JUNGLE": "Vi",
+    "SUPPORT": "Nautilus"
+  },
+  "preference": "Reliable objective control and vision",
+  "candidates_per_role": 3,
+  "max_tier_gap": 1
 }
 ```
+
+If one role has no eligible real candidate, the response is marked `partial` and identifies the missing role. If no
+role has a candidate, the response is `no_matches`.
+
+## Role-queue evaluation
+
+The evaluation matches the product: given a finder occupying one role in a future match, rank candidates for each
+other role. It separately measures all observed future teammates and teammates from successful future lineups.
+
+```powershell
+python -m src.evaluation.role_queue --weight-trials 256 --validation-queries 2500 --test-queries 5000
+```
+
+The protocol uses chronological train/validation/test windows. Candidate profiles come only from earlier matches,
+weights are selected on validation NDCG@5, and the final report includes NDCG@5, Recall@5, MRR, hard baselines,
+ablations, and match-clustered confidence intervals.
+
+Outputs:
+
+- `docs/role_queue_evaluation.md`
+- `data/evaluation/role_queue_metrics.csv`
+- `data/evaluation/role_queue_report.json`
 
 ## Tests
 
@@ -87,4 +121,5 @@ When filtering or retrieval leaves no eligible player, `/recommend` returns:
 pytest -q
 ```
 
-The tests assert Riot-schema parsing, rank joins, cross-file deduplication, real metric aggregation, self-exclusion, observed duo scoring, and the required empty-result behavior.
+Tests cover Riot-schema parsing, real aggregation, role hard-filtering, four-slot team completion, Fill assignment,
+champion affinity, temporal separation, and empty-result behavior.

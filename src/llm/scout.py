@@ -22,12 +22,13 @@ def generate_scout_report(candidate: dict[str, Any], preference: str, model: str
     facts = {key: candidate.get(key) for key in (
         "summoner_id", "player_name", "tier", "rank", "role", "matches", "win_rate", "kda",
         "avg_kills", "avg_deaths", "avg_assists", "avg_vision_score", "avg_gold_earned",
-        "avg_damage_dealt", "top_champions", "duo_games", "duo_win_rate", "rag_document",
+        "avg_damage_dealt", "top_champions", "slot_role", "target_champion", "rag_document",
     )}
     instructions = (
         "You are a League of Legends tactical scout. Use only the provided JSON facts. "
         "Do not infer unrecorded play style, champion skill, personality, availability, or causality. "
-        "Clearly label limited sample sizes and unavailable facts. Give concise strengths, risks, and duo tactics."
+        "Assess the candidate only for the requested role-queue slot and target champion context. "
+        "Clearly label limited sample sizes and unavailable facts. Give concise strengths, risks, and team-fit tactics."
     )
     prompt = f"User preference: {preference or 'No additional preference supplied.'}\nCandidate facts:\n{json.dumps(facts, ensure_ascii=False)}"
     response = OpenAI().responses.create(model=model, instructions=instructions, input=prompt, store=False)
