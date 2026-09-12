@@ -1,3 +1,3 @@
-from .engine import RecommendationEngine, TeamBuilderEngine
+from .engine import RecommendationEngine, TwoTowerRecommendationEngine
 
-__all__ = ["RecommendationEngine", "TeamBuilderEngine"]
+__all__ = ["RecommendationEngine", "TwoTowerRecommendationEngine"]

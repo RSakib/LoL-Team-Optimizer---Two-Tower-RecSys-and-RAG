@@ -23,6 +23,7 @@ def generate_scout_report(candidate: dict[str, Any], preference: str, model: str
         "summoner_id", "player_name", "tier", "rank", "role", "matches", "win_rate", "kda",
         "avg_kills", "avg_deaths", "avg_assists", "avg_vision_score", "avg_gold_earned",
         "avg_damage_dealt", "top_champions", "slot_role", "target_champion", "rag_document",
+        "retrieval_metadata",
     )}
     instructions = (
         "You are a League of Legends tactical scout. Use only the provided JSON facts. "

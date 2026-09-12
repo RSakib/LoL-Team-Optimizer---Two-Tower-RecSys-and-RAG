@@ -1,8 +1,7 @@
-import numpy as np
 import pandas as pd
 
 from src.evaluation.events import temporal_three_way_split
-from src.evaluation.role_queue import _weight_candidates, ranking_metrics
+from src.recsys.train import build_positive_pairs
 
 
 def test_three_way_temporal_split_is_disjoint_and_ordered():
@@ -18,14 +17,13 @@ def test_three_way_temporal_split_is_disjoint_and_ordered():
     assert set(validation["match_id"]).isdisjoint(test["match_id"])
 
 
-def test_ranking_metrics_reward_relevant_role_candidate():
-    recall, ndcg = ranking_metrics(np.array([0.1, 0.9, 0.2]), ["top-a", "top-b", "top-c"], {"top-b"}, 1)
-    assert recall == 1.0
-    assert ndcg == 1.0
-
-
-def test_role_queue_weight_candidates_are_convex():
-    weights = _weight_candidates(32, seed=42)
-    assert weights.shape == (32, 4)
-    assert np.all(weights >= 0.0)
-    np.testing.assert_allclose(weights.sum(axis=1), 1.0)
+def test_positive_pairs_only_join_real_same_team_different_role_players():
+    events = pd.DataFrame([
+        {"match_id": "m1", "team_id": 100, "summoner_id": "mid", "role": "MID", "tier": "GOLD", "rank": "II", "champion_name": "Ahri", "win": True},
+        {"match_id": "m1", "team_id": 100, "summoner_id": "jungle", "role": "JUNGLE", "tier": "GOLD", "rank": "II", "champion_name": "Vi", "win": True},
+        {"match_id": "m1", "team_id": 200, "summoner_id": "enemy", "role": "TOP", "tier": "GOLD", "rank": "II", "champion_name": "Garen", "win": False},
+    ])
+    pairs = build_positive_pairs(events, {"mid", "jungle", "enemy"})
+    assert set(zip(pairs["finder_id"], pairs["candidate_id"])) == {
+        ("mid", "jungle"), ("jungle", "mid"),
+    }

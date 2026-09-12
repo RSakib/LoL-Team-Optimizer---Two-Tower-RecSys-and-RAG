@@ -46,5 +46,5 @@ def test_profile_document_is_computed_from_matches(tmp_path):
     assert profiles.loc[0, "matches"] == 1
     assert profiles.loc[0, "win_rate"] == 1.0
     assert profiles.loc[0, "top_champions"] == {"Lulu": 1}
-    assert "31.0 vision score" in profiles.loc[0, "rag_document"]
-
+    assert "vision score 31.0" in profiles.loc[0, "rag_document"]
+    assert "Role-relative profile" in profiles.loc[0, "rag_document"]

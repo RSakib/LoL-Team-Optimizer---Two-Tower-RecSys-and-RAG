@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 from typing import Any
@@ -139,3 +140,18 @@ def temporal_three_way_split(
     if train.empty or validation.empty or test.empty:
         raise RuntimeError("Three-way temporal split produced an empty partition")
     return train, validation, test, validation_cutoff, test_cutoff
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build the compact real-player event table for two-tower training")
+    parser.add_argument("--source", type=Path, default=DATA_DIR / "matchData.csv")
+    parser.add_argument("--destination", type=Path, default=EVENT_PATH)
+    parser.add_argument("--chunk-size", type=int, default=100)
+    args = parser.parse_args()
+    print(json.dumps(
+        build_compact_event_table(args.source, args.destination, args.chunk_size), indent=2
+    ), flush=True)
+
+
+if __name__ == "__main__":
+    main()

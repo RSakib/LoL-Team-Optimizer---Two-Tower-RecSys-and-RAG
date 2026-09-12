@@ -22,13 +22,13 @@ ROLE_LABELS = {
 }
 DISPLAY_ROLE = {value: key for key, value in ROLE_LABELS.items()}
 
-st.set_page_config(page_title="LoL role queue team builder", page_icon=":material/groups:", layout="wide")
+st.set_page_config(page_title="LoL two-tower team recommender", page_icon=":material/groups:", layout="wide")
 st.session_state.setdefault("team_response", None)
 st.session_state.setdefault("submitted_preference", "")
 
-st.title("LoL role queue team builder")
+st.title("LoL two-tower team recommender")
 st.caption(
-    "Choose your role. The system recommends real players for each of the other four positions."
+    "A trained dual encoder ranks real players for the four open roles; optional RAG retrieval adds your text preference."
 )
 
 primary_role_label = st.selectbox(
@@ -112,7 +112,7 @@ if data:
     header = st.container(horizontal=True, horizontal_alignment="distribute", vertical_alignment="center")
     header.subheader("Recommended teammates")
     if team.get("team_fit_score") is not None:
-        header.metric("Average candidate fit", f"{team['team_fit_score']:.1f}")
+        header.metric("Average recommendation score", f"{team['team_fit_score']:.1f}")
 
     if team.get("requested_primary_role") == "FILL":
         st.info(
@@ -140,7 +140,7 @@ if data:
             with st.container(border=True):
                 st.markdown(f"### {index}. {name}")
                 metrics = st.columns(4)
-                metrics[0].metric("Team fit", f"{candidate['team_fit_score']:.1f}")
+                metrics[0].metric("Recommendation", f"{candidate['recommendation_score']:.1f}")
                 metrics[1].metric(
                     "Rank",
                     " ".join(filter(None, [candidate.get("tier"), candidate.get("rank")])) or "Unavailable",
@@ -154,13 +154,20 @@ if data:
                     + (", ".join(f"{champion} ({games})" for champion, games in champions.items()) or "Unavailable")
                 )
                 with st.expander("Why this candidate"):
-                    detail_columns = st.columns(4)
-                    detail_columns[0].metric("Experience", f"{100 * candidate['experience_score']:.0f}%")
-                    detail_columns[1].metric("Performance", f"{100 * candidate['performance_score']:.0f}%")
-                    detail_columns[2].metric("Rank fit", f"{100 * candidate['rank_fit_score']:.0f}%")
-                    detail_columns[3].metric(
-                        "Champion affinity", f"{100 * candidate['champion_affinity_score']:.0f}%"
-                    )
+                    with st.container(horizontal=True):
+                        st.metric("Two-tower rank", f"#{candidate['two_tower_rank']}", border=True)
+                        st.metric("Embedding similarity", f"{candidate['two_tower_similarity']:.3f}", border=True)
+                        if st.session_state.submitted_preference.strip():
+                            rag_rank = candidate.get("rag_rank")
+                            rag_score = candidate.get("rag_similarity")
+                            st.metric("RAG rank", f"#{rag_rank}" if rag_rank else "Outside top retrieval", border=True)
+                            st.metric("RAG similarity", f"{rag_score:.3f}" if rag_score is not None else "Unavailable", border=True)
+                    if st.session_state.submitted_preference.strip():
+                        st.caption(
+                            "The trained two-tower rank and role-scoped RAG rank are combined with reciprocal-rank fusion."
+                        )
+                    else:
+                        st.caption("Ranking comes directly from the trained two-tower embedding similarity.")
                     st.write(candidate["rag_document"])
                 if st.button(
                     "Generate role-specific scout report",

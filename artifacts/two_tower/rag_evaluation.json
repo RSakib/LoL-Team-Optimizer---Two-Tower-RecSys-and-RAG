@@ -1,0 +1,126 @@
+{
+  "protocol": "controlled_real_profile_retrieval",
+  "profiles": 2854,
+  "queries": 40,
+  "label_source": "recorded real profile fields; top-20-percent role thresholds",
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "models": {
+    "semantic_chroma": {
+      "precision": {
+        "value": 0.3675,
+        "ci_low": 0.28500000000000003,
+        "ci_high": 0.45506250000000004
+      },
+      "recall": {
+        "value": 0.04204853202134384,
+        "ci_low": 0.02850279027234473,
+        "ci_high": 0.05822087810176285
+      },
+      "ndcg": {
+        "value": 0.3798034428511571,
+        "ci_low": 0.294126690686586,
+        "ci_high": 0.4725766172356725
+      },
+      "hit_rate": {
+        "value": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0
+      },
+      "mrr": {
+        "value": 0.5845138888888888,
+        "ci_low": 0.46784027777777776,
+        "ci_high": 0.6965659722222222
+      }
+    },
+    "hybrid_chroma": {
+      "precision": {
+        "value": 0.86,
+        "ci_low": 0.77,
+        "ci_high": 0.9375
+      },
+      "recall": {
+        "value": 0.08002778894498457,
+        "ci_low": 0.07291025237434723,
+        "ci_high": 0.08694438112024787
+      },
+      "ndcg": {
+        "value": 0.870097628170939,
+        "ci_low": 0.7853328846623537,
+        "ci_high": 0.9430068764938756
+      },
+      "hit_rate": {
+        "value": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0
+      },
+      "mrr": {
+        "value": 0.9416666666666667,
+        "ci_low": 0.8791666666666668,
+        "ci_high": 0.9875
+      }
+    },
+    "tfidf": {
+      "precision": {
+        "value": 0.43999999999999995,
+        "ci_low": 0.32243749999999993,
+        "ci_high": 0.5650000000000001
+      },
+      "recall": {
+        "value": 0.05140093329520934,
+        "ci_low": 0.03316690134232925,
+        "ci_high": 0.0714366355211842
+      },
+      "ndcg": {
+        "value": 0.4482586731192357,
+        "ci_low": 0.333508217665079,
+        "ci_high": 0.5753355934900737
+      },
+      "hit_rate": {
+        "value": 0.75,
+        "ci_low": 0.625,
+        "ci_high": 0.875
+      },
+      "mrr": {
+        "value": 0.5655059523809524,
+        "ci_low": 0.43501711309523816,
+        "ci_high": 0.7017075892857143
+      }
+    },
+    "random": {
+      "precision": {
+        "value": 0.215,
+        "ci_low": 0.16750000000000004,
+        "ci_high": 0.26
+      },
+      "recall": {
+        "value": 0.019805126645572955,
+        "ci_low": 0.015498962403126846,
+        "ci_high": 0.023818621795235456
+      },
+      "ndcg": {
+        "value": 0.20757565690406143,
+        "ci_low": 0.16168883171479378,
+        "ci_high": 0.25421837386280244
+      },
+      "hit_rate": {
+        "value": 0.875,
+        "ci_low": 0.775,
+        "ci_high": 0.975
+      },
+      "mrr": {
+        "value": 0.4055059523809524,
+        "ci_low": 0.30694890873015873,
+        "ci_high": 0.5089960317460318
+      }
+    }
+  },
+  "hybrid_ndcg_by_category": {
+    "assists": 1.0,
+    "champion": 0.4803905126837562,
+    "damage": 1.0,
+    "experience": 1.0,
+    "kda": 1.0,
+    "vision": 1.0,
+    "win_rate": 1.0
+  }
+}

@@ -7,14 +7,14 @@ import pandas as pd
 
 from src.config import CHROMA_DIR, PROFILE_PATH
 from src.rag.vector_store import RealPlayerVectorStore
-from src.recsys.engine import RecommendationEngine
+from src.recsys.engine import TwoTowerRecommendationEngine
 
 
 @dataclass
 class Runtime:
     profiles: pd.DataFrame
     vector_store: RealPlayerVectorStore
-    recommender: RecommendationEngine
+    recommender: TwoTowerRecommendationEngine
 
 
 @lru_cache(maxsize=1)
@@ -25,20 +25,9 @@ def get_runtime() -> Runtime:
     if profiles.empty:
         raise RuntimeError("Preprocessed profile file is empty")
     store = RealPlayerVectorStore(CHROMA_DIR)
-    if store.collection.count() != len(profiles):
+    if store.requires_rebuild(profiles):
         store.rebuild(profiles)
-    return Runtime(profiles, store, RecommendationEngine(profiles))
-
-
-def resolve_player_id(profiles: pd.DataFrame, identity: str | None) -> str | None:
-    if not identity:
-        return None
-    needle = identity.strip().casefold()
-    for column in ("summoner_id", "puuid", "player_name"):
-        match = profiles[profiles[column].fillna("").astype(str).str.casefold() == needle]
-        if not match.empty:
-            return str(match.iloc[0]["summoner_id"])
-    return identity.strip()
+    return Runtime(profiles, store, TwoTowerRecommendationEngine(profiles))
 
 
 def clear_runtime() -> None:

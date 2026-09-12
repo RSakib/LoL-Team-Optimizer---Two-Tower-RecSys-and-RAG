@@ -1,5 +1,5 @@
 .chroma/
-data/
+/data/
 .pytest-results.xml
 .env
 .pytest_cache/
