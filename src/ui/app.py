@@ -22,13 +22,14 @@ ROLE_LABELS = {
 }
 DISPLAY_ROLE = {value: key for key, value in ROLE_LABELS.items()}
 
-st.set_page_config(page_title="LoL two-tower team recommender", page_icon=":material/groups:", layout="wide")
+st.set_page_config(page_title="LoL joint team recommender", page_icon=":material/groups:", layout="wide")
 st.session_state.setdefault("team_response", None)
 st.session_state.setdefault("submitted_preference", "")
+st.session_state.setdefault("team_scout_report", None)
 
-st.title("LoL two-tower team recommender")
+st.title("LoL joint team recommender")
 st.caption(
-    "A trained dual encoder ranks real players for the four open roles; optional RAG retrieval adds your text preference."
+    "A two-tower model retrieves real candidates, then a trained team model scores complete four-player lineups jointly."
 )
 
 primary_role_label = st.selectbox(
@@ -101,6 +102,7 @@ if submitted:
             response.raise_for_status()
             st.session_state.team_response = response.json()
             st.session_state.submitted_preference = preference
+            st.session_state.team_scout_report = None
         except requests.RequestException as exc:
             st.session_state.team_response = None
             st.error(f"The API could not build the team: {exc}")
@@ -109,10 +111,22 @@ data = st.session_state.team_response
 if data:
     team = data["team"]
     st.divider()
-    header = st.container(horizontal=True, horizontal_alignment="distribute", vertical_alignment="center")
-    header.subheader("Recommended teammates")
+    st.subheader("Jointly optimized lineup")
     if team.get("team_fit_score") is not None:
-        header.metric("Average recommendation score", f"{team['team_fit_score']:.1f}")
+        with st.container(horizontal=True):
+            st.metric(
+                "Model performance score",
+                f"{team['predicted_performance']:.1f}%",
+                border=True,
+                help="A ranking score learned from complete real teams. It is not a calibrated win probability or a guarantee.",
+            )
+            st.metric(
+                "Four-player compatibility",
+                f"{team['compatibility_score']:.1f}%",
+                border=True,
+                help="Average learned interaction score across the six pairs among the four recommended players.",
+            )
+            st.metric("Complete lineups evaluated", f"{team['lineups_evaluated']:,}", border=True)
 
     if team.get("requested_primary_role") == "FILL":
         st.info(
@@ -125,9 +139,62 @@ if data:
 
     st.caption(
         f"Your reserved role: **{DISPLAY_ROLE[team['finder_primary_role']]}**. "
-        "Only the other four team positions are shown below."
+        "The four displayed first choices were selected together, not independently."
     )
-    st.subheader("Recommended teammates by role")
+    if team.get("complete") and team.get("suggested_lineup"):
+        selected_lineup = {
+            candidate["slot_role"]: candidate["summoner_id"]
+            for candidate in team["suggested_lineup"]
+        }
+        if st.button(
+            "Explain why this lineup complements itself",
+            type="primary",
+            icon=":material/psychology:",
+        ):
+            try:
+                scout_response = requests.post(
+                    f"{API_URL}/team/scout",
+                    json={
+                        "primary_role": team["finder_primary_role"],
+                        "lineup": selected_lineup,
+                        "tier": team["finder"].get("tier"),
+                        "rank": team["finder"].get("rank"),
+                        "target_champions": {
+                            slot["role"]: slot["target_champion"]
+                            for slot in team["slots"] if slot.get("target_champion")
+                        },
+                        "preference": st.session_state.submitted_preference,
+                    },
+                    timeout=120,
+                )
+                if scout_response.status_code == 503:
+                    st.info(scout_response.json().get("detail", "Lineup scouting is not configured."))
+                else:
+                    scout_response.raise_for_status()
+                    st.session_state.team_scout_report = scout_response.json()["report"]
+            except requests.RequestException as exc:
+                st.error(f"Lineup report failed: {exc}")
+        if st.session_state.team_scout_report:
+            with st.container(border=True):
+                st.markdown("#### Grounded lineup explanation")
+                st.markdown(st.session_state.team_scout_report)
+        with st.expander("Inspect learned pair compatibility and real lineup evidence"):
+            for pair in team.get("pair_compatibility", []):
+                st.write(
+                    f"{DISPLAY_ROLE[pair['roles'][0]]} + {DISPLAY_ROLE[pair['roles'][1]]}: "
+                    f"{pair['model_compatibility']:.1f}% learned interaction score"
+                )
+            evidence = team.get("champion_pool_evidence") or {}
+            champions = evidence.get("distinct_top_champions") or []
+            st.write(
+                "Recorded top-champion coverage: "
+                + (", ".join(champions) if champions else "Unavailable")
+            )
+            st.caption(
+                "Interaction values are ranking scores, not probabilities. Champion pools and profile statistics are exact retrieved evidence."
+            )
+
+    st.subheader("Selected teammates and alternatives")
     for slot in team["slots"]:
         role_name = DISPLAY_ROLE[slot["role"]]
         target = f" · requested champion: {slot['target_champion']}" if slot.get("target_champion") else ""
@@ -138,7 +205,8 @@ if data:
         for index, candidate in enumerate(slot["candidates"], start=1):
             name = candidate.get("player_name") or candidate["summoner_id"]
             with st.container(border=True):
-                st.markdown(f"### {index}. {name}")
+                selected_label = " — selected for the joint lineup" if candidate.get("selected_for_lineup") else ""
+                st.markdown(f"### {index}. {name}{selected_label}")
                 metrics = st.columns(4)
                 metrics[0].metric("Recommendation", f"{candidate['recommendation_score']:.1f}")
                 metrics[1].metric(
@@ -167,7 +235,7 @@ if data:
                             "The trained two-tower rank and role-scoped RAG rank are combined with reciprocal-rank fusion."
                         )
                     else:
-                        st.caption("Ranking comes directly from the trained two-tower embedding similarity.")
+                        st.caption("Candidate generation comes from the trained two-tower embedding similarity.")
                     st.write(candidate["rag_document"])
                 if st.button(
                     "Generate role-specific scout report",

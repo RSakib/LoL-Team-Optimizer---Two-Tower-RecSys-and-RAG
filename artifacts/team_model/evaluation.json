@@ -1,0 +1,146 @@
+{
+  "protocol": "chronological_observed_complete_team_outcome_prediction",
+  "source_counts": {
+    "train": {
+      "teams": 591,
+      "wins": 360,
+      "losses": 231,
+      "matches_with_both_teams": 131
+    },
+    "validation": {
+      "teams": 93,
+      "wins": 53,
+      "losses": 40,
+      "matches_with_both_teams": 24
+    },
+    "test": {
+      "teams": 113,
+      "wins": 58,
+      "losses": 55,
+      "matches_with_both_teams": 25
+    }
+  },
+  "training": {
+    "device": "cuda",
+    "train_teams": 463,
+    "validation_teams": 65,
+    "development_teams": 531,
+    "selected_epochs": 1,
+    "batch_size": 128,
+    "learning_rate": 0.0005,
+    "pair_loss_weight": 0.25,
+    "two_tower_epochs": 30,
+    "development_win_prior": 0.615819209039548,
+    "real_lineups_only": true,
+    "constructed_negative_lineups": false
+  },
+  "validation_history": [
+    {
+      "epoch": 1,
+      "training_loss": 0.8281479477336054,
+      "validation_team_auc": 0.5788954635108481
+    },
+    {
+      "epoch": 2,
+      "training_loss": 0.7967066700910889,
+      "validation_team_auc": 0.5295857988165681
+    },
+    {
+      "epoch": 3,
+      "training_loss": 0.7748474573236774,
+      "validation_team_auc": 0.5177514792899408
+    },
+    {
+      "epoch": 4,
+      "training_loss": 0.7453336975205174,
+      "validation_team_auc": 0.52465483234714
+    },
+    {
+      "epoch": 5,
+      "training_loss": 0.7092472453056181,
+      "validation_team_auc": 0.5414201183431953
+    },
+    {
+      "epoch": 6,
+      "training_loss": 0.671035875758373,
+      "validation_team_auc": 0.5483234714003945
+    },
+    {
+      "epoch": 7,
+      "training_loss": 0.6337407832294293,
+      "validation_team_auc": 0.5187376725838264
+    },
+    {
+      "epoch": 8,
+      "training_loss": 0.586660510678558,
+      "validation_team_auc": 0.514792899408284
+    },
+    {
+      "epoch": 9,
+      "training_loss": 0.541111325474642,
+      "validation_team_auc": 0.4891518737672584
+    }
+  ],
+  "test": {
+    "teams": 74,
+    "scenarios": 162,
+    "models": {
+      "team_model": {
+        "roc_auc": {
+          "value": 0.6446886446886447,
+          "ci_low": 0.5223862019914651,
+          "ci_high": 0.7798588482961601
+        },
+        "log_loss": 0.6989595866919722,
+        "brier_score": 0.2530440155922925,
+        "accuracy_at_0_5": 0.527027027027027,
+        "observed_winner_ranking": {
+          "matches": 10,
+          "winner_rank_accuracy": 0.4
+        }
+      },
+      "learned_pair_compatibility": {
+        "roc_auc": {
+          "value": 0.613919413919414,
+          "ci_low": 0.49929054054054056,
+          "ci_high": 0.7351685724914279
+        },
+        "log_loss": 0.7011552926167992,
+        "brier_score": 0.2539067844362487,
+        "accuracy_at_0_5": 0.527027027027027,
+        "observed_winner_ranking": {
+          "matches": 10,
+          "winner_rank_accuracy": 0.4
+        }
+      },
+      "mean_historical_win_rate": {
+        "roc_auc": {
+          "value": 0.504029304029304,
+          "ci_low": 0.37444415081042987,
+          "ci_high": 0.6440094901888869
+        },
+        "log_loss": 0.6960855554007308,
+        "brier_score": 0.25141438844851544,
+        "accuracy_at_0_5": 0.5405405405405406,
+        "observed_winner_ranking": {
+          "matches": 10,
+          "winner_rank_accuracy": 0.6
+        }
+      },
+      "constant_prior": {
+        "roc_auc": {
+          "value": 0.5,
+          "ci_low": 0.5,
+          "ci_high": 0.5
+        },
+        "log_loss": 0.7079695016535543,
+        "brier_score": 0.25715359139662497,
+        "accuracy_at_0_5": 0.527027027027027,
+        "observed_winner_ranking": {
+          "matches": 10,
+          "winner_rank_accuracy": 0.5
+        }
+      }
+    }
+  }
+}

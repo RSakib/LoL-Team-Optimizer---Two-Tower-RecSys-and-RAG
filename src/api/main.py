@@ -7,14 +7,18 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from src.data.ingestion import DataIngestionError
-from src.llm.scout import ScoutConfigurationError, generate_scout_report
+from src.llm.scout import (
+    ScoutConfigurationError,
+    generate_lineup_scout_report,
+    generate_scout_report,
+)
 from src.recsys.engine import ROLES
 from src.service import get_runtime
 
 
 QueueRole = Literal["TOP", "JUNGLE", "MID", "BOTTOM", "SUPPORT", "FILL"]
 
-app = FastAPI(title="LoL Two-Tower Team Recommender & RAG Scout", version="3.0.0")
+app = FastAPI(title="LoL Joint Team Recommender & RAG Scout", version="4.0.0")
 
 
 class TeamRecommendRequest(BaseModel):
@@ -34,6 +38,15 @@ class ScoutRequest(BaseModel):
     preference: str = ""
 
 
+class TeamScoutRequest(BaseModel):
+    primary_role: Literal["TOP", "JUNGLE", "MID", "BOTTOM", "SUPPORT"]
+    lineup: dict[str, str]
+    tier: str | None = None
+    rank: str | None = None
+    target_champions: dict[str, str] = Field(default_factory=dict)
+    preference: str = ""
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
     try:
@@ -41,12 +54,13 @@ def health() -> dict[str, Any]:
         role_counts = runtime.profiles["role"].fillna("UNKNOWN").value_counts().to_dict()
         return {
             "status": "ok",
-            "mode": "trained_two_tower_with_rag",
+            "mode": "two_tower_candidate_generation_plus_joint_team_model_with_rag",
             "real_player_profiles": len(runtime.profiles),
             "profiles_by_primary_role": role_counts,
-            "recommendation_model": "trained_two_tower",
+            "recommendation_model": "trained_two_tower_plus_observed-lineup_team_reranker",
             "model_device": runtime.recommender.loaded.device,
             "model_training": runtime.recommender.loaded.metadata.get("training", {}),
+            "team_model_training": runtime.recommender.team_loaded.metadata.get("training", {}),
             "rag_embedding_model": runtime.vector_store.embedding_model_name,
             "rag_indexed_profiles": runtime.vector_store.collection.count(),
             "scout_generation_configured": bool(os.getenv("OPENAI_API_KEY")),
@@ -131,4 +145,52 @@ def scout(request: ScoutRequest) -> dict[str, Any]:
         "slot_role": request.slot_role,
         "report": report,
         "grounded_profile": evidence["rag_document"],
+    }
+
+
+@app.post("/team/scout")
+def scout_team(request: TeamScoutRequest) -> dict[str, Any]:
+    try:
+        runtime = get_runtime()
+        scores = runtime.recommender.score_lineup(
+            finder_primary_role=request.primary_role,
+            lineup=request.lineup,
+            tier=request.tier,
+            division=request.rank,
+        )
+    except (DataIngestionError, RuntimeError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    retrieved_profiles: list[dict[str, Any]] = []
+    for role, player_id in request.lineup.items():
+        evidence = runtime.vector_store.get_profile_document(player_id)
+        if evidence is None or not evidence["rag_document"]:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Exact RAG evidence is missing for {role} player {player_id}; no report was generated",
+            )
+        retrieved_profiles.append({
+            "role": role,
+            "summoner_id": player_id,
+            "rag_document": evidence["rag_document"],
+            "retrieval_metadata": evidence["metadata"],
+        })
+    facts = {
+        "finder": {"primary_role": request.primary_role, "tier": request.tier, "rank": request.rank},
+        "target_champions": request.target_champions,
+        "performance_ranking_score_percent": scores["predicted_performance"],
+        "compatibility_percent": scores["compatibility_score"],
+        "pair_compatibility_model_estimates": scores["pair_compatibility"],
+        "champion_pool_and_playstyle_evidence": scores["champion_pool_evidence"],
+        "retrieved_real_profiles": retrieved_profiles,
+    }
+    try:
+        report = generate_lineup_scout_report(facts, request.preference)
+    except ScoutConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {
+        "report": report,
+        "model_scores": scores,
+        "grounded_profiles": retrieved_profiles,
     }

@@ -3055,7 +3055,7 @@
   },
   "training": {
     "seed": 42,
-    "selected_epochs": 15,
+    "selected_epochs": 30,
     "train_pairs": 58850,
     "development_pairs": 69378,
     "trained_through_timestamp": 1755303685428,

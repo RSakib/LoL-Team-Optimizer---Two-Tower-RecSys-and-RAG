@@ -36,3 +36,36 @@ def generate_scout_report(candidate: dict[str, Any], preference: str, model: str
     if not response.output_text:
         raise RuntimeError("The LLM returned no scout-report text")
     return response.output_text
+
+
+def generate_lineup_scout_report(
+    lineup_facts: dict[str, Any], preference: str, model: str = OPENAI_MODEL
+) -> str:
+    """Explain a joint lineup using only exact retrieved profiles and labeled model estimates."""
+    if not os.getenv("OPENAI_API_KEY"):
+        raise ScoutConfigurationError("OPENAI_API_KEY is not configured; no lineup report was generated")
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise ScoutConfigurationError("The openai package is not installed") from exc
+    instructions = (
+        "You are a League of Legends lineup analyst. Use only the supplied JSON evidence. "
+        "The retrieved profile documents and champion pools are recorded facts. Performance, overall compatibility, "
+        "and pair compatibility are uncalibrated ranking scores, not probabilities, facts, or causal guarantees. Explain concrete complementary "
+        "strengths across the four roles, champion-pool coverage, and risks. Never infer personality, communication, "
+        "availability, unrecorded champion skill, damage type, champion class, or social chemistry. Do not claim the "
+        "lineup will win. If evidence does not support a claimed complement, state that it is unavailable."
+    )
+    prompt = (
+        f"User preference: {preference or 'No additional preference supplied.'}\n"
+        f"Joint lineup evidence:\n{json.dumps(lineup_facts, ensure_ascii=False)}"
+    )
+    response = OpenAI().responses.create(
+        model=model,
+        instructions=instructions,
+        input=prompt,
+        store=False,
+    )
+    if not response.output_text:
+        raise RuntimeError("The LLM returned no lineup-report text")
+    return response.output_text

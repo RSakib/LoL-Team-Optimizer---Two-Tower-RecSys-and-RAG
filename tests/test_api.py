@@ -42,6 +42,7 @@ class _Store:
 
 class _Recommender:
     loaded = SimpleNamespace(device="cpu", metadata={"training": {"development_pairs": 10}})
+    team_loaded = SimpleNamespace(metadata={"training": {"development_complete_teams": 10}})
 
     def recommend_team(self, finder_primary_role, **kwargs):
         assigned = "MID" if finder_primary_role == "FILL" else finder_primary_role
@@ -65,6 +66,19 @@ class _Recommender:
             "complete": True,
             "missing_roles": [],
             "team_fit_score": 80.0,
+            "predicted_performance": 80.0,
+            "compatibility_score": 75.0,
+            "pair_compatibility": [],
+            "lineups_evaluated": 1,
+            "champion_pool_evidence": {},
+        }
+
+    def score_lineup(self, finder_primary_role, lineup, **kwargs):
+        return {
+            "predicted_performance": 80.0,
+            "compatibility_score": 75.0,
+            "pair_compatibility": [],
+            "champion_pool_evidence": {},
         }
 
 
@@ -113,3 +127,28 @@ def test_scout_uses_exact_chroma_evidence(monkeypatch):
     assert response.status_code == 200
     assert captured["rag_document"] == "indexed real profile"
     assert response.json()["grounded_profile"] == "indexed real profile"
+
+
+def test_team_scout_uses_four_exact_chroma_profiles(monkeypatch):
+    monkeypatch.setattr(api_module, "get_runtime", _runtime)
+    captured = {}
+
+    def fake_report(facts, preference):
+        captured.update(facts)
+        return "grounded lineup report"
+
+    monkeypatch.setattr(api_module, "generate_lineup_scout_report", fake_report)
+    lineup = {
+        role: f"player-{role.lower()}"
+        for role in ROLES if role != "MID"
+    }
+    response = TestClient(api_module.app).post(
+        "/team/scout",
+        json={"primary_role": "MID", "lineup": lineup, "preference": "balanced team"},
+    )
+    assert response.status_code == 200
+    assert len(captured["retrieved_real_profiles"]) == 4
+    assert all(
+        item["rag_document"] == "indexed real profile"
+        for item in captured["retrieved_real_profiles"]
+    )

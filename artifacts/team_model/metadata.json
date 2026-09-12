@@ -1,0 +1,35 @@
+{
+  "format_version": 1,
+  "architecture": "observed-complete-team_pair-interaction_reranker",
+  "player_feature_dim": 97,
+  "hidden_dim": 96,
+  "style_columns": [
+    "role_experience_percentile",
+    "role_win_rate_percentile",
+    "role_kda_percentile",
+    "role_vision_percentile",
+    "role_damage_percentile",
+    "role_assists_percentile"
+  ],
+  "pool_features": [
+    "champion_pool_depth",
+    "champion_pool_entropy",
+    "main_champion_share"
+  ],
+  "role_vocab_size": 6,
+  "tier_vocab_size": 11,
+  "division_vocab_size": 5,
+  "two_tower_model_sha256": "7677b0e47107d50a64d3934e933c0c7b8c7c1b68188304c53b391885efce9f1b",
+  "training": {
+    "seed": 42,
+    "selected_epochs": 1,
+    "train_complete_teams": 463,
+    "validation_complete_teams": 65,
+    "development_complete_teams": 531,
+    "trained_through_timestamp": 1755303685428,
+    "validation_cutoff_utc": "2025-08-10T21:45:18.967000+00:00",
+    "test_cutoff_utc": "2025-08-16T00:21:35.642000+00:00",
+    "real_lineups_only": true,
+    "constructed_negative_lineups": false
+  }
+}

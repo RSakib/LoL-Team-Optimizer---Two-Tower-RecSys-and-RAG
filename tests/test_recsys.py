@@ -2,7 +2,20 @@ import pandas as pd
 import torch
 
 from src.recsys.engine import TwoTowerRecommendationEngine
-from src.recsys.two_tower import ROLES, TwoTowerModel, build_metadata, candidate_tensors, save_artifact
+from src.recsys.team_model import (
+    TeamLineupModel,
+    artifact_sha256,
+    build_team_metadata,
+    save_team_artifact,
+)
+from src.recsys.two_tower import (
+    ROLES,
+    LoadedTwoTower,
+    TwoTowerModel,
+    build_metadata,
+    candidate_tensors,
+    save_artifact,
+)
 
 
 def _profile(player, role, tier="GOLD", champion="Lulu", matches=10):
@@ -23,6 +36,12 @@ def _profile(player, role, tier="GOLD", champion="Lulu", matches=10):
         "avg_damage_dealt": 18000.0,
         "top_champions": {champion: max(matches // 2, 1)},
         "rag_document": "real profile",
+        "role_experience_percentile": 0.5,
+        "role_win_rate_percentile": 0.6,
+        "role_kda_percentile": 0.7,
+        "role_vision_percentile": 0.5,
+        "role_damage_percentile": 0.6,
+        "role_assists_percentile": 0.5,
     }
 
 
@@ -32,10 +51,19 @@ def _engine(tmp_path, profiles, rag_weight=0.35):
     model_path = tmp_path / "model.pt"
     metadata_path = tmp_path / "metadata.json"
     save_artifact(model, metadata, model_path, metadata_path)
+    loaded = LoadedTwoTower(model, metadata, "cpu")
+    team_metadata = build_team_metadata(loaded, hidden_dim=32)
+    team_metadata["two_tower_model_sha256"] = artifact_sha256(model_path)
+    team_model = TeamLineupModel(team_metadata)
+    team_model_path = tmp_path / "team_model.pt"
+    team_metadata_path = tmp_path / "team_metadata.json"
+    save_team_artifact(team_model, team_metadata, team_model_path, team_metadata_path)
     return TwoTowerRecommendationEngine(
         profiles,
         model_path=model_path,
         metadata_path=metadata_path,
+        team_model_path=team_model_path,
+        team_metadata_path=team_metadata_path,
         device="cpu",
         rag_rrf_weight=rag_weight,
     )
@@ -61,6 +89,22 @@ def test_team_builder_reserves_finder_role_and_returns_other_four(tmp_path):
     assert {slot["role"] for slot in team["slots"]} == {"TOP", "JUNGLE", "BOTTOM", "SUPPORT"}
     assert len(team["suggested_lineup"]) == 4
     assert team["complete"] is True
+    assert team["lineups_evaluated"] == 1
+    assert team["predicted_performance"] is not None
+    assert len(team["pair_compatibility"]) == 6
+    assert all("model_compatibility" in pair for pair in team["pair_compatibility"])
+    assert team["champion_pool_evidence"]["distinct_top_champions"]
+
+
+def test_team_builder_scores_cartesian_lineups_jointly(tmp_path):
+    profiles = pd.DataFrame([
+        _profile(f"{role.lower()}-{number}", role, champion=f"Champion{role}{number}")
+        for role in ROLES for number in (1, 2)
+    ])
+    team = _engine(tmp_path, profiles).recommend_team("MID", candidates_per_role=2)
+    assert team["lineups_evaluated"] == 16
+    assert len(team["suggested_lineup"]) == 4
+    assert all(candidate["selected_for_lineup"] for candidate in team["suggested_lineup"])
 
 
 def test_rag_rank_is_fused_only_when_preference_results_exist(tmp_path):
