@@ -26,6 +26,7 @@ STYLE_COLUMNS = (
     "role_assists_percentile",
 )
 POOL_FEATURES = ("champion_pool_depth", "champion_pool_entropy", "main_champion_share")
+FEATURE_GROUPS = ("two_tower", "champion_pool_embedding", "playstyle", "pool_summary")
 PAIR_INDICES = tuple(combinations(range(len(ROLES)), 2))
 
 
@@ -141,6 +142,45 @@ class LineupFeatureBank:
     roles: np.ndarray
 
 
+def feature_group_slices(two_tower: LoadedTwoTower) -> dict[str, slice]:
+    embedding_dim = int(two_tower.metadata["embedding_dim"])
+    champion_dim = int(two_tower.model.candidate_champion.embedding_dim)
+    champion_end = embedding_dim + champion_dim
+    style_end = champion_end + len(STYLE_COLUMNS)
+    return {
+        "two_tower": slice(0, embedding_dim),
+        "champion_pool_embedding": slice(embedding_dim, champion_end),
+        "playstyle": slice(champion_end, style_end),
+        "pool_summary": slice(style_end, style_end + len(POOL_FEATURES)),
+    }
+
+
+def select_feature_groups(
+    bank: LineupFeatureBank,
+    two_tower: LoadedTwoTower,
+    groups: Iterable[str],
+) -> LineupFeatureBank:
+    """Return a bank containing only explicitly selected real feature groups."""
+    selected = tuple(dict.fromkeys(groups))
+    unknown = sorted(set(selected).difference(FEATURE_GROUPS))
+    if unknown:
+        raise ValueError(f"Unknown lineup feature groups: {unknown}")
+    if not selected:
+        raise ValueError("At least one real lineup feature group is required")
+    slices = feature_group_slices(two_tower)
+    columns = np.concatenate([
+        np.arange(slices[name].start, slices[name].stop, dtype=np.int64)
+        for name in selected
+    ])
+    return LineupFeatureBank(
+        player_ids=bank.player_ids,
+        rows=bank.rows,
+        features=bank.features[:, columns].copy(),
+        valid=bank.valid,
+        roles=bank.roles,
+    )
+
+
 @torch.inference_mode()
 def build_lineup_feature_bank(
     profiles: pd.DataFrame,
@@ -198,14 +238,24 @@ def build_lineup_feature_bank(
     )
 
 
-def build_team_metadata(two_tower: LoadedTwoTower, hidden_dim: int = 96) -> dict[str, Any]:
+def build_team_metadata(
+    two_tower: LoadedTwoTower,
+    hidden_dim: int = 96,
+    player_feature_dim: int | None = None,
+    feature_groups: Iterable[str] = FEATURE_GROUPS,
+    use_pair_interactions: bool = True,
+) -> dict[str, Any]:
     vocabs = two_tower.metadata["vocabs"]
     champion_dim = int(two_tower.model.candidate_champion.embedding_dim)
     return {
         "format_version": 1,
         "architecture": "observed-complete-team_pair-interaction_reranker",
-        "player_feature_dim": int(two_tower.metadata["embedding_dim"]) + champion_dim + len(STYLE_COLUMNS) + len(POOL_FEATURES),
+        "player_feature_dim": int(player_feature_dim) if player_feature_dim is not None else (
+            int(two_tower.metadata["embedding_dim"]) + champion_dim + len(STYLE_COLUMNS) + len(POOL_FEATURES)
+        ),
         "hidden_dim": int(hidden_dim),
+        "feature_groups": list(feature_groups),
+        "use_pair_interactions": bool(use_pair_interactions),
         "style_columns": list(STYLE_COLUMNS),
         "pool_features": list(POOL_FEATURES),
         "role_vocab_size": len(vocabs["role"]),
@@ -220,6 +270,7 @@ class TeamLineupModel(nn.Module):
     def __init__(self, metadata: dict[str, Any]):
         super().__init__()
         hidden = int(metadata["hidden_dim"])
+        self.use_pair_interactions = bool(metadata.get("use_pair_interactions", True))
         self.finder_role = nn.Embedding(int(metadata["role_vocab_size"]), 12)
         self.finder_tier = nn.Embedding(int(metadata["tier_vocab_size"]), 8)
         self.finder_division = nn.Embedding(int(metadata["division_vocab_size"]), 4)
@@ -234,8 +285,10 @@ class TeamLineupModel(nn.Module):
             nn.GELU(),
             nn.Dropout(0.10),
             nn.Linear(hidden, 1),
-        )
-        team_input = hidden * 7 + len(PAIR_INDICES) * 2 + 24
+        ) if self.use_pair_interactions else None
+        team_input = hidden * 7 + 24
+        if self.use_pair_interactions:
+            team_input += len(PAIR_INDICES) * 2
         self.performance_network = nn.Sequential(
             nn.Linear(team_input, hidden * 2),
             nn.LayerNorm(hidden * 2),
@@ -261,29 +314,36 @@ class TeamLineupModel(nn.Module):
         mean = masked.sum(dim=1) / count
         variance = (((players - mean.unsqueeze(1)) * mask) ** 2).sum(dim=1) / count
         std = torch.sqrt(variance + 1e-6)
-        pair_logits: list[Tensor] = []
         pair_masks: list[Tensor] = []
         for left, right in PAIR_INDICES:
-            a, b = players[:, left], players[:, right]
-            pair_input = torch.cat((a, b, a * b, torch.abs(a - b)), dim=-1)
-            pair_logits.append(self.pair_network(pair_input).squeeze(-1))
             pair_masks.append(present_mask[:, left] & present_mask[:, right])
-        pairs = torch.stack(pair_logits, dim=1)
         valid_pairs = torch.stack(pair_masks, dim=1)
-        pair_count = valid_pairs.float().sum(dim=1).clamp_min(1.0)
-        pair_mean = (pairs * valid_pairs.float()).sum(dim=1) / pair_count
-        centered = (pairs - pair_mean.unsqueeze(1)) * valid_pairs.float()
-        pair_std = torch.sqrt((centered.square().sum(dim=1) / pair_count) + 1e-6)
         context = torch.cat((
             self.finder_role(finder_role),
             self.finder_tier(finder_tier),
             self.finder_division(finder_division),
         ), dim=-1)
-        team_input = torch.cat((
-            masked.flatten(start_dim=1), mean, std,
-            pairs * valid_pairs.float(), valid_pairs.float(), context,
-        ), dim=-1)
-        performance_logit = self.performance_network(team_input).squeeze(-1) + pair_mean
+        team_parts = [masked.flatten(start_dim=1), mean, std]
+        if self.use_pair_interactions:
+            pair_logits: list[Tensor] = []
+            assert self.pair_network is not None
+            for left, right in PAIR_INDICES:
+                a, b = players[:, left], players[:, right]
+                pair_input = torch.cat((a, b, a * b, torch.abs(a - b)), dim=-1)
+                pair_logits.append(self.pair_network(pair_input).squeeze(-1))
+            pairs = torch.stack(pair_logits, dim=1)
+            pair_count = valid_pairs.float().sum(dim=1).clamp_min(1.0)
+            pair_mean = (pairs * valid_pairs.float()).sum(dim=1) / pair_count
+            team_parts.extend((pairs * valid_pairs.float(), valid_pairs.float()))
+        else:
+            pairs = torch.zeros(
+                (len(player_features), len(PAIR_INDICES)),
+                dtype=players.dtype,
+                device=players.device,
+            )
+            pair_mean = torch.zeros(len(player_features), dtype=players.dtype, device=players.device)
+        team_parts.append(context)
+        performance_logit = self.performance_network(torch.cat(team_parts, dim=-1)).squeeze(-1) + pair_mean
         return performance_logit, pairs, valid_pairs
 
 

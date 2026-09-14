@@ -7,9 +7,16 @@ Chroma index interpret natural-language preferences and ground optional OpenAI l
 
 Training, evaluation, and serving use no synthetic players, mock recommendations, or random fallback candidates.
 
+## Dataset
+
+This project uses the real ranked-match records from
+[Patch 25.14+ (LoL) League of Legends Ranked Games](https://www.kaggle.com/datasets/californianbill/patch-25-14-lol-league-of-legends-ranked-games),
+published by Kaggle user `californianbill`. Download the source files from Kaggle and place them in `data/` before
+running the preprocessing pipeline. The raw dataset is not redistributed by this repository.
+
 ```mermaid
 flowchart LR
-    A[Real Riot match files] --> B[Bounded preprocessing]
+    A[Kaggle Patch 25.14+ ranked match files] --> B[Bounded preprocessing]
     B --> C[Compact temporal events]
     B --> D[Real player profiles]
     C --> E[Two-tower pairwise training]
@@ -100,11 +107,11 @@ The separate RAG benchmark uses 40 controlled queries over 2,854 real profiles:
 | TF-IDF | 0.4483 | 0.4400 | 0.7500 |
 | Random | 0.2076 | 0.2150 | 0.8750 |
 
-The second-stage model is evaluated separately on 74 eligible future complete teams. Its ROC-AUC is **0.6447**, with a
-wide 95% interval of **0.5224–0.7799** because the complete-team cohort is small. Calibration and same-match winner
-ranking remain weak, so UI values are presented as ranking scores—not win probabilities. See the [two-tower evaluation](docs/two_tower_evaluation.md),
-[joint-team evaluation](docs/team_model_evaluation.md), and [RAG evaluation](docs/rag_evaluation.md) for confidence
-intervals, leakage controls, negative results, and limitations.
+The latest joint-team evaluation uses four rolling temporal folds over 196 non-overlapping out-of-time teams. The
+deployment-aligned seed reaches **0.5615 ROC-AUC [0.4779, 0.6422]**, with **0.5446 ± 0.0401** across five seeds. No pair,
+champion-pool, or playstyle ablation produced a statistically reliable improvement. The joint scorer therefore remains
+an experimental architecture, not a validated win predictor. See the [rolling benchmark](docs/team_benchmark.md),
+[two-tower evaluation](docs/two_tower_evaluation.md), and [RAG evaluation](docs/rag_evaluation.md).
 
 ## Setup
 
@@ -134,6 +141,7 @@ If `data/evaluation/ranked_match_events.parquet` already exists, train directly 
 ```powershell
 python -m src.recsys.train --device cuda
 python -m src.recsys.train_team --device cuda
+python -m src.evaluation.team_benchmark --device cuda
 ```
 
 The first command trains the candidate generator. The second trains the observed-lineup reranker and binds it to the
@@ -144,7 +152,12 @@ evaluate RAG separately:
 ```powershell
 python -m src.data.reindex_profiles
 python -m src.evaluation.rag
+python -m src.evaluation.rag_human prepare --cases 50 --reviewers 2
 ```
+
+The RAG human-evaluation command writes 50 real-lineup cases and a blank two-reviewer sheet under ignored `data/`.
+It does not call OpenAI or manufacture ratings. Add `--generate` only when you intentionally want to spend API credit,
+then have two human reviewers complete the sheet and run `python -m src.evaluation.rag_human score`.
 
 ## Run
 

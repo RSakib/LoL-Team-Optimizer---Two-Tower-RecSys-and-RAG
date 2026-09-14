@@ -84,6 +84,8 @@ def _batch_loss(
     pair_loss_weight: float,
 ) -> torch.Tensor:
     performance_loss = F.binary_cross_entropy_with_logits(performance_logits, labels)
+    if pair_loss_weight <= 0:
+        return performance_loss
     pair_labels = labels.unsqueeze(1).expand_as(pair_logits)
     pair_loss = F.binary_cross_entropy_with_logits(pair_logits[pair_mask], pair_labels[pair_mask])
     return performance_loss + pair_loss_weight * pair_loss
@@ -345,57 +347,17 @@ def _selection_train(
     return best_epoch, history
 
 
-def _format_auc(result: dict[str, Any], name: str) -> str:
-    metric = result["models"][name]["roc_auc"]
-    return f"{metric['value']:.4f} [{metric['ci_low']:.4f}, {metric['ci_high']:.4f}]"
-
-
 def write_report(report: dict[str, Any]) -> None:
-    test = report["test"]
     lines = [
         "# Joint Team Model Evaluation", "",
-        "This second-stage model scores all four recommended players together. Training and evaluation use only",
-        "fully observed five-player teams that occurred in the local match logs. No shuffled lineups, synthetic",
-        "teams, substituted players, imputed members, or fallback scores are used.", "",
-        "## Temporal protocol", "",
-        f"- Complete train teams before eligibility filtering: **{report['source_counts']['train']['teams']:,}**",
-        f"- Eligible train teams: **{report['training']['train_teams']:,}**",
-        f"- Eligible validation teams: **{report['training']['validation_teams']:,}**",
-        f"- Eligible final-training teams: **{report['training']['development_teams']:,}**",
-        f"- Eligible untouched test teams: **{test['teams']:,}**",
-        f"- Selected team-model epochs: **{report['training']['selected_epochs']}**",
-        "- Player profiles and the provisional two-tower used for validation are built from the training window only.",
-        "- The deployment team model is fit on train + validation, then evaluated once on the future test window.", "",
-        "## Future complete-team outcome prediction", "",
-        "| Model | ROC-AUC (95% CI) | Log loss | Brier score | Accuracy |",
-        "|---|---:|---:|---:|---:|",
+        "The former single-window evaluation has been removed because it was superseded after that test window was inspected",
+        "during development. Keeping its figures beside the current benchmark would present an obsolete generalization estimate.", "",
+        "The current and only reported joint-team evaluation is the four-fold rolling temporal benchmark:", "",
+        "- [Latest joint-team benchmark](team_benchmark.md)",
+        "- [Calibration plot](team_calibration.png)", "",
+        "Run `python -m src.evaluation.team_benchmark --device cuda` to regenerate the current report from the compact real-match",
+        "history. No synthetic teams, substituted players, imputed members, or fallback scores are used.",
     ]
-    for name in ("team_model", "learned_pair_compatibility", "mean_historical_win_rate", "constant_prior"):
-        metrics = test["models"][name]
-        lines.append(
-            f"| {name} | {_format_auc(test, name)} | {metrics['log_loss']:.4f} | "
-            f"{metrics['brier_score']:.4f} | {metrics['accuracy_at_0_5']:.4f} |"
-        )
-    winner = test["models"]["team_model"]["observed_winner_ranking"]
-    lines.extend([
-        "", "## Same-match winner ranking", "",
-        f"For **{winner['matches']:,}** future matches where both complete real teams are available, the model ranked",
-        f"the recorded winning lineup above the losing lineup **{winner['winner_rank_accuracy']:.1%}** of the time.", "",
-        "## What the model learns", "",
-        "- A performance head sees the complete four-player lineup plus the anonymous finder role/rank.",
-        "- A pair-interaction head scores every pair among the four recommended players.",
-        "- Inputs include frozen two-tower player embeddings, weighted top-champion-pool embeddings, and role-relative",
-        "  experience, win rate, KDA, vision, damage, assists, champion-pool depth, entropy, and concentration.",
-        "- Runtime optimization evaluates complete cross-role candidate combinations and selects one jointly.", "",
-        "## Limitations", "",
-        "- The complete-team cohort is small; confidence intervals must be reported with the point estimates.",
-        "- The outcome score is not well calibrated on this test cohort and must be treated as a ranking score, not a win probability.",
-        "- The 10-match same-match comparison underperforms the historical-win-rate baseline and is too small for a firm conclusion.",
-        "- Recorded wins are observational outcomes, not proof that the four players caused the win.",
-        "- The finder remains anonymous beyond role/rank, so the score cannot model their personal play style.",
-        "- Pair interactions inherit the observed team outcome as supervision; there are no direct pair-compatibility labels.",
-        "- The model estimates statistical compatibility from observed outcomes; it does not claim social chemistry.",
-    ])
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

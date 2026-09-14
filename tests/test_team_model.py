@@ -66,3 +66,25 @@ def test_team_model_scores_performance_and_all_pair_interactions():
     assert performance.shape == (2,)
     assert pairs.shape == (2, 10)
     assert torch.equal(pair_mask.sum(dim=1), torch.tensor([6, 6]))
+
+
+def test_no_pair_ablation_has_no_learned_pair_scores():
+    metadata = {
+        "player_feature_dim": 20,
+        "hidden_dim": 16,
+        "role_vocab_size": 6,
+        "tier_vocab_size": 11,
+        "division_vocab_size": 5,
+        "use_pair_interactions": False,
+    }
+    model = TeamLineupModel(metadata)
+    performance, pairs, pair_mask = model(
+        torch.randn(2, 5, 20),
+        torch.tensor([[False, True, True, True, True], [True, True, False, True, True]]),
+        torch.tensor([1, 3]),
+        torch.tensor([4, 4]),
+        torch.tensor([2, 2]),
+    )
+    assert performance.shape == (2,)
+    assert torch.count_nonzero(pairs) == 0
+    assert torch.equal(pair_mask.sum(dim=1), torch.tensor([6, 6]))
