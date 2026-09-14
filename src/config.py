@@ -21,7 +21,9 @@ TEAM_MODEL_METADATA_PATH = Path(os.getenv("LOL_TEAM_MODEL_METADATA", TEAM_MODEL_
 TWO_TOWER_DEVICE = os.getenv("LOL_TWO_TOWER_DEVICE", "auto")
 RAG_RRF_WEIGHT = float(os.getenv("LOL_RAG_RRF_WEIGHT", "0.35"))
 API_URL = os.getenv("LOL_API_URL", "http://127.0.0.1:8001")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:4b")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "180"))
 RAG_EMBEDDING_MODEL = os.getenv(
     "RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
 )

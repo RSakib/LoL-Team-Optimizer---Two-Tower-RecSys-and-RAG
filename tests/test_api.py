@@ -86,6 +86,19 @@ def _runtime():
     return SimpleNamespace(profiles=_profiles(), vector_store=_Store(), recommender=_Recommender())
 
 
+def test_health_reports_configured_scout_provider(monkeypatch):
+    monkeypatch.setattr(api_module, "get_runtime", _runtime)
+    monkeypatch.setattr(
+        api_module,
+        "scout_generation_status",
+        lambda: {"provider": "ollama", "model": "gemma3:4b", "configured": True},
+    )
+    response = TestClient(api_module.app).get("/health")
+    assert response.status_code == 200
+    assert response.json()["scout_generation_provider"] == "ollama"
+    assert response.json()["scout_generation_model"] == "gemma3:4b"
+
+
 def test_team_endpoint_returns_four_open_role_slots(monkeypatch):
     monkeypatch.setattr(api_module, "get_runtime", _runtime)
     response = TestClient(api_module.app).post(

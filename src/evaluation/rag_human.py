@@ -247,7 +247,7 @@ def main() -> None:
     prepare.add_argument(
         "--generate",
         action="store_true",
-        help="Call the configured OpenAI model for each case; omitted by default to avoid unapproved API spend.",
+        help="Call the configured local Ollama model for each real case; omitted by default.",
     )
     subparsers.add_parser("score")
     args = parser.parse_args()

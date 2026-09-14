@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException
@@ -11,6 +10,7 @@ from src.llm.scout import (
     ScoutConfigurationError,
     generate_lineup_scout_report,
     generate_scout_report,
+    scout_generation_status,
 )
 from src.recsys.engine import ROLES
 from src.service import get_runtime
@@ -52,6 +52,7 @@ def health() -> dict[str, Any]:
     try:
         runtime = get_runtime()
         role_counts = runtime.profiles["role"].fillna("UNKNOWN").value_counts().to_dict()
+        scout_status = scout_generation_status()
         return {
             "status": "ok",
             "mode": "two_tower_candidate_generation_plus_joint_team_model_with_rag",
@@ -63,7 +64,9 @@ def health() -> dict[str, Any]:
             "team_model_training": runtime.recommender.team_loaded.metadata.get("training", {}),
             "rag_embedding_model": runtime.vector_store.embedding_model_name,
             "rag_indexed_profiles": runtime.vector_store.collection.count(),
-            "scout_generation_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "scout_generation_configured": scout_status["configured"],
+            "scout_generation_provider": scout_status["provider"],
+            "scout_generation_model": scout_status["model"],
             "source": "preprocessed local real data",
         }
     except (DataIngestionError, RuntimeError) as exc:

@@ -3,7 +3,7 @@
 A real-data-only League of Legends teammate recommender. A trained two-tower retrieves candidates for the four open
 roles around an anonymous finder. A second trained model scores every complete four-player combination, including
 pair interactions, champion-pool features, and role-relative playstyle statistics. A local Sentence Transformer and
-Chroma index interpret natural-language preferences and ground optional OpenAI lineup explanations.
+Chroma index interpret natural-language preferences and ground optional local Ollama lineup explanations.
 
 Training, evaluation, and serving use no synthetic players, mock recommendations, or random fallback candidates.
 
@@ -35,7 +35,7 @@ flowchart LR
     O --> P[One jointly optimized lineup]
     H --> Q[Retrieve exact selected profiles]
     P --> Q
-    Q --> R[Optional grounded OpenAI explanation]
+    Q --> R[Optional grounded Ollama explanation]
 ```
 
 ## Architecture
@@ -80,9 +80,9 @@ combination in one batch, and selects the highest learned outcome score. It neve
 player or a hardcoded score.
 
 `/team/scout` retrieves the four selected players' exact Chroma documents and sends those, the recorded champion and
-playstyle evidence, and explicitly labeled model scores to the OpenAI Responses API. Missing evidence or credentials
-produces an explicit error instead of fabricated context. OpenAI is optional for recommendation; it is used only to
-write the explanation.
+playstyle evidence, and explicitly labeled model scores to the local Ollama generator. Missing evidence or an
+unavailable Ollama server produces an explicit error instead of fabricated context. Ollama writes only the explanation
+and never selects candidates.
 
 ## Measured results
 
@@ -124,6 +124,17 @@ python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
+Scout generation defaults to a free local Ollama model. Install [Ollama](https://ollama.com/download), then download
+the configured model once:
+
+```powershell
+ollama pull gemma3:4b
+```
+
+The Ollama desktop app normally starts its local API automatically. If it is not running, start it with `ollama serve`.
+The default `.env.example` points Scout to Ollama's native API at `http://127.0.0.1:11434`. No API key or paid inference
+credit is required.
+
 Place real Riot CSV, JSON, JSONL, or NDJSON exports in `data/`. The root data directory, local Chroma database, and
 `.env` secrets are excluded from Git.
 
@@ -156,8 +167,9 @@ python -m src.evaluation.rag_human prepare --cases 50 --reviewers 2
 ```
 
 The RAG human-evaluation command writes 50 real-lineup cases and a blank two-reviewer sheet under ignored `data/`.
-It does not call OpenAI or manufacture ratings. Add `--generate` only when you intentionally want to spend API credit,
-then have two human reviewers complete the sheet and run `python -m src.evaluation.rag_human score`.
+It does not call a generator or manufacture ratings. With Ollama running, add `--generate` to create the grounded
+reports locally for free, then have two human reviewers complete the sheet and run
+`python -m src.evaluation.rag_human score`.
 
 ## Run
 
@@ -167,13 +179,16 @@ Start FastAPI:
 uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
-Start Streamlit in another terminal:
+Start Gradio in another terminal:
 
 ```powershell
-.\.venv\Scripts\streamlit.exe run src/ui/app.py
+.\.venv\Scripts\python.exe -m src.ui.app
 ```
 
-Open `http://127.0.0.1:8501`. API documentation is at `http://127.0.0.1:8001/docs`.
+Open `http://127.0.0.1:7860`. API documentation is at `http://127.0.0.1:8001/docs`.
+
+This repository's scout generator remains local Ollama. The Gradio interface calls the FastAPI routes, so the
+recommendation, complete-lineup scout, and individual-candidate scout behavior stays separated and testable.
 
 ## API contract
 
