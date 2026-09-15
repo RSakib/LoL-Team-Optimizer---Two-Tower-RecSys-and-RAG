@@ -103,7 +103,7 @@ def test_team_endpoint_returns_four_open_role_slots(monkeypatch):
     monkeypatch.setattr(api_module, "get_runtime", _runtime)
     response = TestClient(api_module.app).post(
         "/team/recommend",
-        json={"primary_role": "MID", "candidates_per_role": 1},
+        json={"primary_role": "MID", "tier": "GOLD", "candidates_per_role": 1},
     )
     assert response.status_code == 200
     payload = response.json()
@@ -118,10 +118,19 @@ def test_team_endpoint_accepts_fill(monkeypatch):
     monkeypatch.setattr(api_module, "get_runtime", _runtime)
     response = TestClient(api_module.app).post(
         "/team/recommend",
-        json={"primary_role": "FILL", "candidates_per_role": 1},
+        json={"primary_role": "FILL", "tier": "IRON", "candidates_per_role": 1},
     )
     assert response.status_code == 200
     assert response.json()["team"]["fill_assignment"] in ROLES
+
+
+def test_team_endpoint_requires_a_rank_tier(monkeypatch):
+    monkeypatch.setattr(api_module, "get_runtime", _runtime)
+    response = TestClient(api_module.app).post(
+        "/team/recommend",
+        json={"primary_role": "FILL", "candidates_per_role": 1},
+    )
+    assert response.status_code == 422
 
 
 def test_scout_uses_exact_chroma_evidence(monkeypatch):

@@ -16,6 +16,20 @@ class FakeResponse:
         return self._payload
 
 
+def test_matchmaking_defaults_require_platinum_four_and_fill() -> None:
+    assert ui.TIERS[0] == "IRON"
+    assert "No rank filter" not in ui.TIERS
+    config = ui.demo.get_config_file()
+    dropdowns = {
+        component["props"].get("label"): component["props"].get("value")
+        for component in config["components"]
+        if component["type"] == "dropdown"
+    }
+    assert dropdowns["Finder’s primary role"] == "Fill"
+    assert dropdowns["Your rank tier"] == "PLATINUM"
+    assert dropdowns["Your division"] == "IV"
+
+
 def test_recommendation_uses_role_queue_contract_and_real_empty_state(monkeypatch) -> None:
     captured: dict[str, Any] = {}
     api_result = {
@@ -95,3 +109,35 @@ def test_lineup_scout_refuses_partial_lineup_without_api_call(monkeypatch) -> No
     state = {"response": {"team": {"complete": False, "suggested_lineup": []}}}
 
     assert "complete real lineup is required" in ui.scout_lineup(state)
+
+
+def test_each_recommended_player_renders_as_an_individual_card() -> None:
+    candidate = {
+        "summoner_id": "real-player-id",
+        "player_name": "Indexed Player",
+        "tier": "GOLD",
+        "rank": "II",
+        "recommendation_score": 81.2,
+        "kda": 3.4,
+        "win_rate": 0.56,
+        "matches": 25,
+        "top_champions": {"Nautilus": 12},
+        "two_tower_rank": 1,
+        "two_tower_similarity": 0.73,
+        "rag_document": "Profile derived from indexed match statistics.",
+        "selected_for_lineup": True,
+    }
+    rendered = ui._render_team({
+        "status": "partial",
+        "message": "No matching real candidates found for: TOP, JUNGLE, BOTTOM",
+        "team": {
+            "finder_primary_role": "MID",
+            "slots": [{"role": "SUPPORT", "target_champion": None, "candidates": [candidate]}],
+            "suggested_lineup": [],
+        },
+    })
+
+    assert rendered.count('<article class="player-card selected">') == 1
+    assert "Indexed Player" in rendered
+    assert "Recorded top champions" in rendered
+    assert "Why this candidate" in rendered

@@ -17,6 +17,10 @@ from src.service import get_runtime
 
 
 QueueRole = Literal["TOP", "JUNGLE", "MID", "BOTTOM", "SUPPORT", "FILL"]
+RankTier = Literal[
+    "IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD",
+    "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER",
+]
 
 app = FastAPI(title="LoL Joint Team Recommender & RAG Scout", version="4.0.0")
 
@@ -24,7 +28,7 @@ app = FastAPI(title="LoL Joint Team Recommender & RAG Scout", version="4.0.0")
 class TeamRecommendRequest(BaseModel):
     primary_role: QueueRole
     target_champions: dict[str, str] = Field(default_factory=dict)
-    tier: str | None = None
+    tier: RankTier
     rank: str | None = None
     preference: str = ""
     candidates_per_role: int = Field(default=3, ge=1, le=10)

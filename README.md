@@ -214,6 +214,9 @@ Example recommendation request:
 If no real candidate survives a hard role/rank constraint, the API returns an empty or partial result. It never
 injects a placeholder candidate.
 
+`tier` is required for matchmaking. The Gradio interface defaults the finder to `FILL` at `PLATINUM IV`;
+unrestricted rank matchmaking is intentionally unavailable.
+
 ## Tests
 
 ```powershell
