@@ -7,9 +7,6 @@ Choose your primary role and rank to find four teammates for the remaining roles
 preferences or target champions to refine the search, then request grounded scouting
 reports for individual players or the complete lineup.
 
-The project uses recorded match history—not live matchmaking data. It never invents
-players or inserts placeholder recommendations when no real candidate qualifies.
-
 ## What it does
 
 - **Finds role-appropriate candidates:** filters recorded players by role, rank, and optional champion history.
