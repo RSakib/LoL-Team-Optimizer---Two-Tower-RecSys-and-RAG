@@ -24,6 +24,7 @@ def test_league_title_and_font_are_scoped_to_hero():
     assert "League of Legends: " in theme.HERO_HTML and "Team Recommender" in theme.HERO_HTML
     assert "YOUR NEXT CHAPTER" not in theme.HERO_HTML
     assert "hero-eyebrow" not in theme.HERO_HTML
+    assert "playstyle preferences.<br>Trained off data from LoL patch 25.14</p>" in theme.HERO_HTML
     assert "#league-title { font-family:'Beaufort for LoL'" in theme.HERO_CSS
     assert "Beaufort" not in ui.APP_CSS
     assert "data:font/ttf;base64," in theme.FONT_CSS
@@ -57,6 +58,19 @@ def test_header_has_writeup_link_without_removed_tagline_or_rank_badge():
     assert ".hero-writeup:focus-visible" in theme.HERO_CSS
 
 
+def test_page_gradient_is_not_clipped_to_the_content_column():
+    import re
+
+    page = re.search(r"body\s*\{([^}]+)\}", theme.GLOBAL_CSS).group(1)
+    container = re.search(r"\.gradio-container\s*\{([^}]+)\}", theme.GLOBAL_CSS).group(1)
+    assert "radial-gradient" in page and "min-height: 100vh" in page
+    assert "ellipse 1000px 720px" in page  # Independent of result/page height.
+    assert "radial-gradient" not in container
+    assert "gradio-app { background: transparent !important; }" in theme.GLOBAL_CSS
+    assert "background: transparent !important" in container
+    assert "max-width: 1240px" in container  # Preserve readable content width.
+
+
 def test_matchmaking_defaults_require_platinum_four_and_fill() -> None:
     assert ui.TIERS == ["PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
     assert "No rank filter" not in ui.TIERS
@@ -64,7 +78,7 @@ def test_matchmaking_defaults_require_platinum_four_and_fill() -> None:
     dropdowns = {
         component["props"].get("label"): component["props"].get("value")
         for component in config["components"]
-        if component["type"] == "dropdown"
+        if component["type"] in {"dropdown", "html"}
     }
     assert dropdowns["Your Primary Role"] == "Fill"
     assert dropdowns["Your rank tier"] == "PLATINUM"

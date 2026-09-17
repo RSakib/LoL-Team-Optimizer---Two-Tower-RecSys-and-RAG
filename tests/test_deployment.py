@@ -91,6 +91,12 @@ def test_real_bundle_has_no_secrets_or_raw_data_and_validates(tmp_path):
         assert "deployment/rag_embeddings.npz" in names
         assert "assets/fonts/BeaufortforLOL-Bold.ttf" in names
         assert "assets/fonts/NOTICE.md" in names
+        assert "assets/league/catalog.json" in names
+        assert "assets/league/champions/Ahri.png" in names
+        assert "assets/league/champions/Yunara.png" in names
+        assert "assets/league/ranks/EMERALD.png" in names
+        assert "assets/league/divisions/IV.svg" in names
+        assert "assets/league/NOTICE.md" in names
         assert manifest["format_version"] == 3
         assert ".env.example" in names and ".env" not in names
         assert not any(name.startswith(("data/", ".venv/", ".git/", ".chroma/", "tests/")) for name in names)

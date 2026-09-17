@@ -115,8 +115,9 @@ Check all of these:
   the supplied player evidence and does not present ranking scores as win odds.
 - Observe memory and latency in Cloud Run Metrics. A page loading successfully
   does not prove that report generation fits in memory or finishes in time.
-- Close the browser/preview and stop the proxy after testing. Revisit after idle
-  scale-down to check cold-start behavior.
+- Leave the tab idle after results finish and check the idle-network procedure
+  below. Revisit after scale-down to check cold-start behavior. Stop the proxy
+  when you finish private testing.
 
 Read runtime logs if a report fails:
 
@@ -170,6 +171,7 @@ gcloud run services remove-iam-policy-binding league-team-recommender \
 | CPU / RAM | 2 / 8 GiB | Initial allowance for CPU rankers, encoder, Qwen and transient tensors |
 | HTTP concurrency | 8 | Gradio needs multiple HTTP/SSE connections; do not set this to 1 |
 | Gradio inference concurrency | 1 shared queue | Serialize expensive model operations |
+| Idle browser connection | None | Tab-local JSON replaces server session state; no session heartbeat or polling timer |
 | Session affinity | Enabled | Help route a session to the same in-memory queue |
 | Request timeout | 900 seconds | Initial allowance for CPU scout generation |
 | Startup probe | TCP, up to 240 seconds | Allow real-index and encoder initialization |
@@ -210,18 +212,62 @@ model. This is a functionality check, not a Cloud Run performance benchmark.
 
 Keep the browser connected while generating reports. Request-based CPU may pause
 work after clients disconnect; this deployment is not a durable background-job
-system. Gradio's queue/session state lives in memory and can be lost when a
-container restarts. A user must rebuild their lineup after that happens.
+system. Active queued jobs live in memory and can be lost when a container
+restarts. Completed lineup display state stays in that browser tab and is sent
+with each explicit scout request, so scouting does not require the old server
+session. Each scout revalidates player IDs and retrieves server-owned evidence;
+browser-supplied statistics are not accepted as evidence. Refreshing the page
+resets the live lineup; the app does not use `gr.BrowserState`/local storage to
+restore it. Gradio's separate built-in Runs history may save calls in your browser;
+it is not needed to keep the server session alive. A changed deployment/dataset
+can invalidate an old lineup, in which case rebuild it.
+
+### Idle tabs do not keep a request open
+
+The UI intentionally uses a hidden `gr.JSON` component instead of `gr.State`.
+For the pinned Gradio version, this disables the otherwise persistent session
+`/gradio_api/heartbeat/...` connection. No polling timers, automatic inference,
+or keep-alive pings are registered. Startup fails if a UI change reintroduces a
+heartbeat, timer, server state, or automatic backend listener. Queue SSE is still
+used while a button request runs, then closes after completion (also on error).
+An idle tab may remain open without keeping this application's request active.
+
+After deploying this version, **refresh any tabs opened on an older version**;
+their already-loaded frontend can still use the old heartbeat behavior. Deploy
+to the same service name, check that the new revision receives all traffic, and
+avoid using an old revision's tagged URL. Existing requests on an old revision
+may continue until disconnected or timed out.
+
+To verify on the deployed service:
+
+1. Open browser Developer Tools → Network, then refresh the page once.
+2. After page assets load, there should be no pending `heartbeat` request and no
+   recurring application requests while idle. Do not enable automatic reload.
+3. Click Build my team, then test both scout buttons. `/queue/data` is expected
+   while queued/running, but must finish when each result or error arrives.
+4. Leave the tab open without clicking. Confirm no new application traffic and
+   observe Cloud Run request metrics. Idle scale-down is not instantaneous.
+
+Local HTTP tests exercise the actual Gradio queue with isolated inference test
+doubles, including a new browser session for each scout, separate report outputs,
+and stream EOF after success/error. They do not measure a deployed Google bill.
+Do not run an uptime monitor against the service (including `/health`) to test
+idleness: those requests themselves can wake it up.
 
 Scale-to-zero does NOT mean the entire project has zero idle cost. Container image
 storage, build/source storage, builds, logs and networking may incur separate charges.
-Open SSE/heartbeat connections can extend billed time even when no new button is
-clicked. Close demo tabs when finished. Do not add uptime pings, a minimum warm
+Actual page loads, queued/running inference, and public/bot requests are still
+billable activity. Closing a tab is not a guarantee of immediate cancellation of
+an already-running Python/model operation. Do not add uptime pings, a minimum warm
 instance, a load balancer, a VPC connector, or a GPU just to keep the demo awake.
 Startup and shutdown time can also be billed. A max-instance setting reduces
 exposure but is not a hard cap; public traffic can keep the service active.
 
 Track actual billing after testing; do not assume a guaranteed free monthly bill.
+Budget alerts alone do not cap spending. If your billing account offers Google's
+[Cloud Run budget spend caps](https://docs.cloud.google.com/run/docs/configuring/billing-settings#budget-spend-caps),
+consider enabling one separately; this preview control pauses Cloud Run workloads
+at the cap, but is not a cap on all project services such as image storage/builds.
 Set storage cleanup policies once you know which images are needed for rollback.
 Removing a Cloud Run service alone does not remove its stored build images.
 

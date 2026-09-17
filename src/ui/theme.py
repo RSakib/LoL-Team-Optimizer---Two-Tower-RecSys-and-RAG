@@ -50,12 +50,19 @@ FONT_CSS = (
 FONT_HEAD = '<style id="league-title-font">' + FONT_CSS + '</style>'
 
 GLOBAL_CSS = """
-body { background: #010a13; }
+/* Paint the glow on the page, not the max-width content column. Fixed ellipse
+   dimensions also keep it stable when recommendation cards lengthen the page. */
+body {
+    min-height: 100vh;
+    background: radial-gradient(ellipse 1000px 720px at calc(50% + 460px) 0, #07323c80, transparent 75%), #010a13 !important;
+    background-repeat: no-repeat !important;
+}
+gradio-app { background: transparent !important; }
 .gradio-container {
     max-width: 1240px !important;
     margin: 0 auto !important;
     padding: 28px 32px 20px !important;
-    background: radial-gradient(ellipse at 90% 0%, #07323c80, transparent 46%), #010a13 !important;
+    background: transparent !important;
 }
 #finder-panel {
     border: 1px solid #28424b; border-top: 2px solid #8b7443;
@@ -63,6 +70,7 @@ body { background: #010a13; }
     box-shadow: 0 12px 36px #00000030;
 }
 #team-preference textarea { line-height: 1.6; }
+#finder-panel, #advanced-search-settings { overflow:visible !important; }
 #build-team { min-height: 54px; letter-spacing: .08em; font-weight: 700; }
 .gradio-container button:focus-visible, .gradio-container summary:focus-visible {
     outline: 2px solid #0ac8b9 !important; outline-offset: 3px;
@@ -84,7 +92,7 @@ HERO_HTML = """
   </a>
   <div class="hero-copy">
     <h1 id="league-title">League of Legends: <span>Team Recommender</span></h1>
-    <p class="hero-description">Match real players to your roles, rank, and playstyle preferences.</p>
+    <p class="hero-description">Match real players to your roles, rank, and playstyle preferences.<br>Trained off data from LoL patch 25.14</p>
     <div class="hero-tags"><span>REAL MATCH DATA</span><span>RAG SCOUT REPORTS</span></div>
   </div>
   <div class="hero-crest" aria-hidden="true"><div class="crest-ring"><span>04</span><small>OPEN ROLES</small></div></div>

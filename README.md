@@ -361,6 +361,11 @@ candidate-versus-team report isolation, interface behavior, and deployment integ
 ## Deployment
 
 For the container-based deployment workflow, see [Google Cloud Run deployment](docs/cloud_run.md).
+The UI uses tab-local lineup state without a persistent Gradio session heartbeat.
+Only explicit recommendation/scout buttons trigger inference, and queue streams
+close when requests finish. The deployment uses request-based billing and zero
+minimum instances; usage, startup, builds, and storage can still incur charges.
+After updating an existing deployment, refresh older browser tabs to load this behavior.
 Local development does not require a cloud account.
 
 ## Attribution
@@ -368,3 +373,8 @@ Local development does not require a cloud account.
 This is an unofficial fan-made portfolio project, not endorsed or sponsored by Riot Games.
 The interface uses Riot's Beaufort for LoL font for its main title only; see
 [font attribution and terms](assets/fonts/NOTICE.md).
+Champion portraits and rank crests are bundled locally; see [artwork sources](assets/league/NOTICE.md).
+Target-champion controls search only champions recorded in the configured processed profiles,
+show their portraits, and submit the original dataset IDs. Free-text values cannot be submitted.
+Divisions use original Roman-numeral UI badges. No CDN requests or model downloads are needed
+to display the artwork; deployment bundles include it automatically.

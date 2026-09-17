@@ -11,6 +11,12 @@ import requests
 
 from src.config import API_URL
 from src.ui import backend
+from src.ui.idle import assert_on_demand_ui, valid_snapshot
+from src.ui.icon_select import icon_select
+from src.ui.league_assets import (
+    ASSET_ROOT, ICON_CSS, champion_html, champion_label, champion_text_html,
+    champion_url, division_url, rank_html, rank_url, recorded_champions,
+)
 from src.ranks import MATCHMAKING_TIERS
 from src.name_safety import mask_name, mask_known_names
 from src.ui.theme import TITLE, THEME, GLOBAL_CSS, FONT_HEAD, HERO_HTML, HERO_CSS, SECTION_CSS, EMPTY_HTML
@@ -34,7 +40,7 @@ element.addEventListener('click', (event) => {
 });
 """
 
-APP_CSS = """
+APP_CSS = ICON_CSS + """
 #team-results {
     margin-top: 1.25rem;
 }
@@ -305,7 +311,7 @@ def _error_panel(title: str, detail: Any) -> str:
         '<section class="team-results"><div class="results-header"><div>'
         '<div class="results-kicker">Request error</div>'
         f'<h2>{_safe(title)}</h2></div></div>'
-        f'<div class="result-alert">{_safe(detail)}</div></section>'
+        f'<div class="result-alert">{champion_text_html(str(detail))}</div></section>'
     )
 
 
@@ -361,7 +367,7 @@ def _render_team(
     team = data.get("team") or {}
     alert = ""
     if status in {"partial", "no_matches"} and message:
-        alert = f'<div class="result-alert">{_safe(message)}</div>'
+        alert = f'<div class="result-alert">{champion_text_html(str(message))}</div>'
     header = (
         '<section class="team-results">'
         '<div class="results-header"><div><div class="results-kicker">Team builder</div>'
@@ -398,13 +404,13 @@ def _render_team(
     if selected:
         chips = []
         for candidate in selected:
-            rank = " ".join(filter(None, [candidate.get("tier"), candidate.get("rank")])) or "Unavailable"
+            rank = rank_html(candidate.get("tier"), candidate.get("rank"))
             name = candidate.get("player_name") or candidate.get("summoner_id")
             chips.append(
                 '<div class="lineup-chip">'
                 f'<div class="lineup-chip-role">{_safe(_role_name(candidate.get("slot_role")))}</div>'
                 f'<strong class="lineup-chip-name">{_safe(mask_name(str(name)))}</strong>'
-                f'<div class="lineup-chip-meta">{_safe(rank)} · {float(candidate.get("recommendation_score", 0.0)):.1f} score</div>'
+                f'<div class="lineup-chip-meta">{rank} · {float(candidate.get("recommendation_score", 0.0)):.1f} score</div>'
                 '</div>'
             )
         sections.append('<div class="selected-lineup">' + "".join(chips) + '</div>')
@@ -420,7 +426,7 @@ def _render_team(
                 f'{float(pair.get("model_compatibility", 0.0)):.1f}% learned interaction score</li>'
             )
         champions = evidence.get("distinct_top_champions") or []
-        coverage = ", ".join(_safe(champion) for champion in champions) or "Unavailable"
+        coverage = ", ".join(champion_html(champion) for champion in champions) or "Unavailable"
         evidence_items.append(f'<li>Recorded top-champion coverage: {coverage}</li>')
         sections.append(
             '<details class="team-evidence"><summary>Inspect learned team evidence</summary>'
@@ -430,7 +436,7 @@ def _render_team(
     for slot in team.get("slots", []):
         role_name = _role_name(slot.get("role"))
         target = slot.get("target_champion")
-        target_badge = f'<span class="target-chip">Target: {_safe(target)}</span>' if target else ""
+        target_badge = f'<span class="target-chip">Target: {champion_html(target)}</span>' if target else ""
         candidates = slot.get("candidates") or []
         if not candidates:
             sections.append(
@@ -444,10 +450,10 @@ def _render_team(
             name = candidate.get("player_name") or candidate.get("summoner_id")
             is_selected = bool(candidate.get("selected_for_lineup"))
             selected_badge = '<span class="selected-badge">Selected</span>' if is_selected else ""
-            rank = " ".join(filter(None, [candidate.get("tier"), candidate.get("rank")])) or "Unavailable"
+            rank = rank_html(candidate.get("tier"), candidate.get("rank"))
             champions = candidate.get("top_champions") or {}
             champion_chips = "".join(
-                f'<span class="champion-chip">{_safe(champion)} · {int(games)}</span>'
+                f'<span class="champion-chip">{champion_html(champion)} · {int(games)}</span>'
                 for champion, games in champions.items()
             ) or '<span class="champion-chip">Unavailable</span>'
             candidate_key = str(slot.get("role", "")) + "::" + str(candidate.get("summoner_id", ""))
@@ -463,7 +469,7 @@ def _render_team(
                 f'<article class="{card_class}">'
                 f'<div class="player-card-top"><span class="candidate-number">OPTION {index}</span>{selected_badge}</div>'
                 f'<h4 class="player-name">{_safe(mask_name(str(name)))}</h4>'
-                f'<div class="player-rank"><span class="rank-badge">{_safe(rank)}</span>'
+                f'<div class="player-rank"><span class="rank-badge">{rank}</span>'
                 f'<span>{int(candidate.get("matches", 0))} recorded matches</span></div>'
                 '<div class="player-metrics">'
                 f'<div class="player-metric"><span>Recommendation</span><strong>{float(candidate.get("recommendation_score", 0.0)):.1f}</strong></div>'
@@ -501,6 +507,12 @@ def recommend_team(
     bottom_champion: str,
     support_champion: str,
 ) -> tuple[str, dict[str, Any], str]:
+    if primary_role_label not in ROLE_LABELS or tier_label not in TIERS or division_label not in DIVISIONS:
+        return _error_panel("Invalid selection", "Choose one of the listed roles, rank tiers, and divisions."), {}, ""
+    allowed = set(recorded_champions())
+    for champion in (top_champion, jungle_champion, mid_champion, bottom_champion, support_champion):
+        if champion and (not isinstance(champion, str) or champion not in allowed):
+            return _error_panel("Invalid champion", "Select a champion from the recorded dataset dropdown."), {}, ""
     primary_role = ROLE_LABELS[primary_role_label]
     targets = _target_champions(
         primary_role, top_champion, jungle_champion, mid_champion,
@@ -544,15 +556,23 @@ def recommend_team(
 
 
 def scout_lineup(state: dict[str, Any]) -> str:
+    if not valid_snapshot(state):
+        return "Invalid browser results. Please rebuild your team."
     if not state or not state.get("response"):
         return "Build a complete team before requesting a lineup explanation."
     team = state["response"].get("team") or {}
     if not team.get("complete") or not team.get("suggested_lineup"):
         return "A complete real lineup is required before the local model can explain it."
-    lineup = {
-        candidate["slot_role"]: candidate["summoner_id"]
-        for candidate in team["suggested_lineup"]
-    }
+    selected = team["suggested_lineup"]
+    if (len(selected) != 4 or any(
+        not isinstance(candidate.get("summoner_id"), str)
+        or not isinstance(candidate.get("slot_role"), str)
+        or candidate.get("slot_role") not in set(DISPLAY_ROLE) - {"FILL"}
+        for candidate in selected
+    ) or not isinstance(team.get("finder_primary_role"), str)
+            or team.get("finder_primary_role") not in set(DISPLAY_ROLE) - {"FILL"}):
+        return "Invalid browser lineup. Please rebuild your team."
+    lineup = {candidate["slot_role"]: candidate["summoner_id"] for candidate in selected}
     payload = {
         "primary_role": team["finder_primary_role"],
         "lineup": lineup,
@@ -560,7 +580,8 @@ def scout_lineup(state: dict[str, Any]) -> str:
         "rank": (team.get("finder") or {}).get("rank"),
         "target_champions": {
             slot["role"]: slot["target_champion"]
-            for slot in team.get("slots", []) if slot.get("target_champion")
+            for slot in team.get("slots", [])
+            if isinstance(slot.get("role"), str) and isinstance(slot.get("target_champion"), str)
         },
         "preference": state.get("preference", ""),
     }
@@ -574,12 +595,24 @@ def scout_lineup(state: dict[str, Any]) -> str:
 
 
 def scout_candidate(candidate_key: str | None, state: dict[str, Any]) -> str:
+    if not valid_snapshot(state):
+        return "Invalid browser results. Please rebuild your team."
     if not candidate_key or not state:
         return "Choose a real candidate from the recommendation results first."
     candidate = (state.get("candidates") or {}).get(candidate_key)
     if not candidate:
         return "That candidate is no longer present in the current recommendation results."
-    payload = {**candidate, "preference": state.get("preference", "")}
+    if (not isinstance(candidate.get("summoner_id"), str)
+            or not isinstance(candidate.get("slot_role"), str)):
+        return "Invalid browser candidate. Please rebuild your team."
+    # Browser state supplies identity/context only. Never forward displayed
+    # metrics, reports, or rag_document as authoritative scouting evidence.
+    payload = {
+        "summoner_id": candidate["summoner_id"],
+        "slot_role": candidate["slot_role"],
+        "target_champion": candidate.get("target_champion"),
+        "preference": state.get("preference", ""),
+    }
     try:
         response = backend.post(f"{API_URL}/scout", json=payload, timeout=900)
         if not response.ok:
@@ -606,12 +639,16 @@ def _display_report(report: str, state: dict[str, Any]) -> str:
 def _inline_report_html(report: str) -> str:
     # Render a small, safe subset of Markdown. Escape everything before adding
     # our own tags; never insert model-produced HTML into the card.
-    safe = html.escape(html.unescape(report))
+    safe = champion_text_html(html.unescape(report))
     safe = re.sub(r"(?m)^#{1,6}\s+([^\n]+)", r"<strong>\1</strong>", safe)
     return re.sub(r"(?<!\*)\*\*([^*\n]+)\*\*(?!\*)", r"<strong>\1</strong>", safe)
 
 
 def scout_card(state: dict[str, Any], evt: gr.EventData):
+    if not valid_snapshot(state):
+        gr.Warning("Invalid browser results. Please rebuild your team.")
+        yield gr.skip(), gr.skip()
+        return
     key = getattr(evt, "candidate_key", None)
     if (not isinstance(key, str) or key not in (state or {}).get("candidates", {})
             or getattr(evt, "revision", None) != (state or {}).get("revision")):
@@ -619,7 +656,13 @@ def scout_card(state: dict[str, Any], evt: gr.EventData):
         yield gr.skip(), gr.skip()
         return
     reports = dict(state.get("candidate_reports") or {})
-    yield _render_team(state["response"], reports, loading_key=key, revision=state["revision"]), gr.skip()
+    try:
+        loading = _render_team(state["response"], reports, loading_key=key, revision=state["revision"])
+    except (KeyError, TypeError, ValueError, AttributeError, IndexError, OverflowError):
+        gr.Warning("Invalid browser results. Please rebuild your team.")
+        yield gr.skip(), gr.skip()
+        return
+    yield loading, gr.skip()
     reports[key] = scout_candidate(key, state)
     updated = {**state, "candidate_reports": reports}
     yield _render_team(state["response"], reports, revision=state["revision"]), updated
@@ -627,19 +670,32 @@ def scout_card(state: dict[str, Any], evt: gr.EventData):
 
 def scout_lineup_ui(state: dict[str, Any]):
     yield "Generating a whole-lineup RAG report from the four selected teammates…"
-    yield scout_lineup(state)
+    yield '<div class="lineup-report">' + _inline_report_html(scout_lineup(state)) + '</div>'
 
 
 def build_app() -> gr.Blocks:
-    with gr.Blocks(title=TITLE) as demo:
+    # Serve only the public artwork folder, never data, model files, or .env.
+    gr.set_static_paths(paths=[ASSET_ROOT])
+    champions = [{"value": name, "label": champion_label(name), "icon": champion_url(name)}
+                 for name in recorded_champions()]
+    with gr.Blocks(title=TITLE, analytics_enabled=False) as demo:
         gr.HTML(HERO_HTML, css_template=HERO_CSS, elem_id="league-hero", container=False)
-        result_state = gr.State({})
+        # gr.State opens a persistent /heartbeat SSE request for every tab,
+        # keeping request-billed Cloud Run active. JSON lives only in this page,
+        # and is returned to Python only when a scout button is clicked.
+        result_state = gr.JSON(value={}, visible=False, elem_id="tab-lineup-snapshot")
         gr.HTML('<div class="section-heading"><span>01</span> Configure your team</div>', css_template=SECTION_CSS)
         with gr.Column(elem_id="finder-panel"):
             with gr.Row():
                 primary_role = gr.Dropdown(list(ROLE_LABELS), value="Fill", label="Your Primary Role")
-                tier = gr.Dropdown(TIERS, value="PLATINUM", label="Your rank tier")
-                division = gr.Dropdown(DIVISIONS, value="IV", label="Your division")
+                tier = icon_select(
+                    [{"value": name, "label": name.title(), "icon": rank_url(name)} for name in TIERS],
+                    value="PLATINUM", label="Your rank tier", elem_id="rank-tier",
+                )
+                division = icon_select(
+                    [{"value": name, "label": name, "icon": division_url(name)} for name in DIVISIONS],
+                    value="IV", label="Your division", image_only=True, elem_id="rank-division",
+                )
             with gr.Accordion("Advanced search settings", open=False, elem_id="advanced-search-settings"):
                 with gr.Row():
                     candidates_per_role = gr.Slider(1, 5, value=3, step=1, label="Candidates per open role")
@@ -650,12 +706,14 @@ def build_app() -> gr.Blocks:
                 )
                 gr.Markdown("**Optional target champions** — specify a champion only for a role where recorded champion history is required.")
                 with gr.Row():
-                    top_champion = gr.Textbox(label="Top champion", placeholder="Optional")
-                    jungle_champion = gr.Textbox(label="Jungle champion", placeholder="Optional")
-                    mid_champion = gr.Textbox(label="Mid champion", placeholder="Optional")
+                    top_champion = icon_select(champions, label="Top champion", optional=True, searchable=True, elem_id="target-top")
+                    jungle_champion = icon_select(champions, label="Jungle champion", optional=True, searchable=True, elem_id="target-jungle")
+                    mid_champion = icon_select(champions, label="Mid champion", optional=True, searchable=True, elem_id="target-mid")
                 with gr.Row():
-                    bottom_champion = gr.Textbox(label="Bottom champion", placeholder="Optional")
-                    support_champion = gr.Textbox(label="Support champion", placeholder="Optional")
+                    bottom_champion = icon_select(champions, label="Bottom champion", optional=True, searchable=True, elem_id="target-bottom")
+                    support_champion = icon_select(champions, label="Support champion", optional=True, searchable=True, elem_id="target-support")
+                if not champions:
+                    gr.Markdown("No recorded champions available. Preprocess the real data before choosing target champions.")
             build_button = gr.Button("Build my team", variant="primary", elem_id="build-team")
         recommendation_output = gr.HTML(
             value=EMPTY_HTML,
@@ -668,7 +726,7 @@ def build_app() -> gr.Blocks:
         gr.HTML('<div class="section-heading"><span>02</span> Scout your lineup</div>', css_template=SECTION_CSS)
         with gr.Column(elem_id="lineup-scout-panel"):
             lineup_scout_button = gr.Button("Explain why this lineup complements itself", variant="secondary")
-            lineup_scout_output = gr.Markdown(elem_id="lineup-scout-report")
+            lineup_scout_output = gr.HTML(elem_id="lineup-scout-report", css_template=ICON_CSS)
         gr.Markdown(
             "Recommendations use recorded match data and trained ranking models. Scores are not win probabilities. "
             "AI scout reports may contain errors; inspect their evidence.\n\n"
@@ -698,6 +756,7 @@ def build_app() -> gr.Blocks:
             concurrency_id="inference", concurrency_limit=1,
             scroll_to_output=False, show_progress="hidden",
         )
+    assert_on_demand_ui(demo)
     return demo
 
 

@@ -1,0 +1,879 @@
+{
+  "champions": {
+    "Aatrox": {
+      "label": "Aatrox",
+      "file": "champions/Aatrox.png",
+      "source": "Data Dragon 13.22.1/img/champion/Aatrox.png"
+    },
+    "Ahri": {
+      "label": "Ahri",
+      "file": "champions/Ahri.png",
+      "source": "Data Dragon 13.22.1/img/champion/Ahri.png"
+    },
+    "Akali": {
+      "label": "Akali",
+      "file": "champions/Akali.png",
+      "source": "Data Dragon 13.22.1/img/champion/Akali.png"
+    },
+    "Akshan": {
+      "label": "Akshan",
+      "file": "champions/Akshan.png",
+      "source": "Data Dragon 13.22.1/img/champion/Akshan.png"
+    },
+    "Alistar": {
+      "label": "Alistar",
+      "file": "champions/Alistar.png",
+      "source": "Data Dragon 13.22.1/img/champion/Alistar.png"
+    },
+    "Ambessa": {
+      "label": "Ambessa",
+      "file": "champions/Ambessa.png",
+      "source": "https://ddragon.leagueoflegends.com/cdn/15.14.1/img/champion/Ambessa.png"
+    },
+    "Amumu": {
+      "label": "Amumu",
+      "file": "champions/Amumu.png",
+      "source": "Data Dragon 13.22.1/img/champion/Amumu.png"
+    },
+    "Anivia": {
+      "label": "Anivia",
+      "file": "champions/Anivia.png",
+      "source": "Data Dragon 13.22.1/img/champion/Anivia.png"
+    },
+    "Annie": {
+      "label": "Annie",
+      "file": "champions/Annie.png",
+      "source": "Data Dragon 13.22.1/img/champion/Annie.png"
+    },
+    "Aphelios": {
+      "label": "Aphelios",
+      "file": "champions/Aphelios.png",
+      "source": "Data Dragon 13.22.1/img/champion/Aphelios.png"
+    },
+    "Ashe": {
+      "label": "Ashe",
+      "file": "champions/Ashe.png",
+      "source": "Data Dragon 13.22.1/img/champion/Ashe.png"
+    },
+    "AurelionSol": {
+      "label": "Aurelion Sol",
+      "file": "champions/AurelionSol.png",
+      "source": "Data Dragon 13.22.1/img/champion/AurelionSol.png"
+    },
+    "Aurora": {
+      "label": "Aurora",
+      "file": "champions/Aurora.png",
+      "source": "https://ddragon.leagueoflegends.com/cdn/15.14.1/img/champion/Aurora.png"
+    },
+    "Azir": {
+      "label": "Azir",
+      "file": "champions/Azir.png",
+      "source": "Data Dragon 13.22.1/img/champion/Azir.png"
+    },
+    "Bard": {
+      "label": "Bard",
+      "file": "champions/Bard.png",
+      "source": "Data Dragon 13.22.1/img/champion/Bard.png"
+    },
+    "Belveth": {
+      "label": "Bel'Veth",
+      "file": "champions/Belveth.png",
+      "source": "Data Dragon 13.22.1/img/champion/Belveth.png"
+    },
+    "Blitzcrank": {
+      "label": "Blitzcrank",
+      "file": "champions/Blitzcrank.png",
+      "source": "Data Dragon 13.22.1/img/champion/Blitzcrank.png"
+    },
+    "Brand": {
+      "label": "Brand",
+      "file": "champions/Brand.png",
+      "source": "Data Dragon 13.22.1/img/champion/Brand.png"
+    },
+    "Braum": {
+      "label": "Braum",
+      "file": "champions/Braum.png",
+      "source": "Data Dragon 13.22.1/img/champion/Braum.png"
+    },
+    "Briar": {
+      "label": "Briar",
+      "file": "champions/Briar.png",
+      "source": "Data Dragon 13.22.1/img/champion/Briar.png"
+    },
+    "Caitlyn": {
+      "label": "Caitlyn",
+      "file": "champions/Caitlyn.png",
+      "source": "Data Dragon 13.22.1/img/champion/Caitlyn.png"
+    },
+    "Camille": {
+      "label": "Camille",
+      "file": "champions/Camille.png",
+      "source": "Data Dragon 13.22.1/img/champion/Camille.png"
+    },
+    "Cassiopeia": {
+      "label": "Cassiopeia",
+      "file": "champions/Cassiopeia.png",
+      "source": "Data Dragon 13.22.1/img/champion/Cassiopeia.png"
+    },
+    "Chogath": {
+      "label": "Cho'Gath",
+      "file": "champions/Chogath.png",
+      "source": "Data Dragon 13.22.1/img/champion/Chogath.png"
+    },
+    "Corki": {
+      "label": "Corki",
+      "file": "champions/Corki.png",
+      "source": "Data Dragon 13.22.1/img/champion/Corki.png"
+    },
+    "Darius": {
+      "label": "Darius",
+      "file": "champions/Darius.png",
+      "source": "Data Dragon 13.22.1/img/champion/Darius.png"
+    },
+    "Diana": {
+      "label": "Diana",
+      "file": "champions/Diana.png",
+      "source": "Data Dragon 13.22.1/img/champion/Diana.png"
+    },
+    "DrMundo": {
+      "label": "Dr. Mundo",
+      "file": "champions/DrMundo.png",
+      "source": "Data Dragon 13.22.1/img/champion/DrMundo.png"
+    },
+    "Draven": {
+      "label": "Draven",
+      "file": "champions/Draven.png",
+      "source": "Data Dragon 13.22.1/img/champion/Draven.png"
+    },
+    "Ekko": {
+      "label": "Ekko",
+      "file": "champions/Ekko.png",
+      "source": "Data Dragon 13.22.1/img/champion/Ekko.png"
+    },
+    "Elise": {
+      "label": "Elise",
+      "file": "champions/Elise.png",
+      "source": "Data Dragon 13.22.1/img/champion/Elise.png"
+    },
+    "Evelynn": {
+      "label": "Evelynn",
+      "file": "champions/Evelynn.png",
+      "source": "Data Dragon 13.22.1/img/champion/Evelynn.png"
+    },
+    "Ezreal": {
+      "label": "Ezreal",
+      "file": "champions/Ezreal.png",
+      "source": "Data Dragon 13.22.1/img/champion/Ezreal.png"
+    },
+    "FiddleSticks": {
+      "label": "FiddleSticks",
+      "file": "champions/FiddleSticks.png",
+      "source": "Data Dragon 13.22.1/img/champion/FiddleSticks.png"
+    },
+    "Fiora": {
+      "label": "Fiora",
+      "file": "champions/Fiora.png",
+      "source": "Data Dragon 13.22.1/img/champion/Fiora.png"
+    },
+    "Fizz": {
+      "label": "Fizz",
+      "file": "champions/Fizz.png",
+      "source": "Data Dragon 13.22.1/img/champion/Fizz.png"
+    },
+    "Galio": {
+      "label": "Galio",
+      "file": "champions/Galio.png",
+      "source": "Data Dragon 13.22.1/img/champion/Galio.png"
+    },
+    "Gangplank": {
+      "label": "Gangplank",
+      "file": "champions/Gangplank.png",
+      "source": "Data Dragon 13.22.1/img/champion/Gangplank.png"
+    },
+    "Garen": {
+      "label": "Garen",
+      "file": "champions/Garen.png",
+      "source": "Data Dragon 13.22.1/img/champion/Garen.png"
+    },
+    "Gnar": {
+      "label": "Gnar",
+      "file": "champions/Gnar.png",
+      "source": "Data Dragon 13.22.1/img/champion/Gnar.png"
+    },
+    "Gragas": {
+      "label": "Gragas",
+      "file": "champions/Gragas.png",
+      "source": "Data Dragon 13.22.1/img/champion/Gragas.png"
+    },
+    "Graves": {
+      "label": "Graves",
+      "file": "champions/Graves.png",
+      "source": "Data Dragon 13.22.1/img/champion/Graves.png"
+    },
+    "Gwen": {
+      "label": "Gwen",
+      "file": "champions/Gwen.png",
+      "source": "Data Dragon 13.22.1/img/champion/Gwen.png"
+    },
+    "Hecarim": {
+      "label": "Hecarim",
+      "file": "champions/Hecarim.png",
+      "source": "Data Dragon 13.22.1/img/champion/Hecarim.png"
+    },
+    "Heimerdinger": {
+      "label": "Heimerdinger",
+      "file": "champions/Heimerdinger.png",
+      "source": "Data Dragon 13.22.1/img/champion/Heimerdinger.png"
+    },
+    "Hwei": {
+      "label": "Hwei",
+      "file": "champions/Hwei.png",
+      "source": "https://ddragon.leagueoflegends.com/cdn/15.14.1/img/champion/Hwei.png"
+    },
+    "Illaoi": {
+      "label": "Illaoi",
+      "file": "champions/Illaoi.png",
+      "source": "Data Dragon 13.22.1/img/champion/Illaoi.png"
+    },
+    "Irelia": {
+      "label": "Irelia",
+      "file": "champions/Irelia.png",
+      "source": "Data Dragon 13.22.1/img/champion/Irelia.png"
+    },
+    "Ivern": {
+      "label": "Ivern",
+      "file": "champions/Ivern.png",
+      "source": "Data Dragon 13.22.1/img/champion/Ivern.png"
+    },
+    "Janna": {
+      "label": "Janna",
+      "file": "champions/Janna.png",
+      "source": "Data Dragon 13.22.1/img/champion/Janna.png"
+    },
+    "JarvanIV": {
+      "label": "Jarvan IV",
+      "file": "champions/JarvanIV.png",
+      "source": "Data Dragon 13.22.1/img/champion/JarvanIV.png"
+    },
+    "Jax": {
+      "label": "Jax",
+      "file": "champions/Jax.png",
+      "source": "Data Dragon 13.22.1/img/champion/Jax.png"
+    },
+    "Jayce": {
+      "label": "Jayce",
+      "file": "champions/Jayce.png",
+      "source": "Data Dragon 13.22.1/img/champion/Jayce.png"
+    },
+    "Jhin": {
+      "label": "Jhin",
+      "file": "champions/Jhin.png",
+      "source": "Data Dragon 13.22.1/img/champion/Jhin.png"
+    },
+    "Jinx": {
+      "label": "Jinx",
+      "file": "champions/Jinx.png",
+      "source": "Data Dragon 13.22.1/img/champion/Jinx.png"
+    },
+    "KSante": {
+      "label": "K'Sante",
+      "file": "champions/KSante.png",
+      "source": "Data Dragon 13.22.1/img/champion/KSante.png"
+    },
+    "Kaisa": {
+      "label": "Kai'Sa",
+      "file": "champions/Kaisa.png",
+      "source": "Data Dragon 13.22.1/img/champion/Kaisa.png"
+    },
+    "Kalista": {
+      "label": "Kalista",
+      "file": "champions/Kalista.png",
+      "source": "Data Dragon 13.22.1/img/champion/Kalista.png"
+    },
+    "Karma": {
+      "label": "Karma",
+      "file": "champions/Karma.png",
+      "source": "Data Dragon 13.22.1/img/champion/Karma.png"
+    },
+    "Karthus": {
+      "label": "Karthus",
+      "file": "champions/Karthus.png",
+      "source": "Data Dragon 13.22.1/img/champion/Karthus.png"
+    },
+    "Kassadin": {
+      "label": "Kassadin",
+      "file": "champions/Kassadin.png",
+      "source": "Data Dragon 13.22.1/img/champion/Kassadin.png"
+    },
+    "Katarina": {
+      "label": "Katarina",
+      "file": "champions/Katarina.png",
+      "source": "Data Dragon 13.22.1/img/champion/Katarina.png"
+    },
+    "Kayle": {
+      "label": "Kayle",
+      "file": "champions/Kayle.png",
+      "source": "Data Dragon 13.22.1/img/champion/Kayle.png"
+    },
+    "Kayn": {
+      "label": "Kayn",
+      "file": "champions/Kayn.png",
+      "source": "Data Dragon 13.22.1/img/champion/Kayn.png"
+    },
+    "Kennen": {
+      "label": "Kennen",
+      "file": "champions/Kennen.png",
+      "source": "Data Dragon 13.22.1/img/champion/Kennen.png"
+    },
+    "Khazix": {
+      "label": "Kha'Zix",
+      "file": "champions/Khazix.png",
+      "source": "Data Dragon 13.22.1/img/champion/Khazix.png"
+    },
+    "Kindred": {
+      "label": "Kindred",
+      "file": "champions/Kindred.png",
+      "source": "Data Dragon 13.22.1/img/champion/Kindred.png"
+    },
+    "Kled": {
+      "label": "Kled",
+      "file": "champions/Kled.png",
+      "source": "Data Dragon 13.22.1/img/champion/Kled.png"
+    },
+    "KogMaw": {
+      "label": "Kog'Maw",
+      "file": "champions/KogMaw.png",
+      "source": "Data Dragon 13.22.1/img/champion/KogMaw.png"
+    },
+    "Leblanc": {
+      "label": "LeBlanc",
+      "file": "champions/Leblanc.png",
+      "source": "Data Dragon 13.22.1/img/champion/Leblanc.png"
+    },
+    "LeeSin": {
+      "label": "Lee Sin",
+      "file": "champions/LeeSin.png",
+      "source": "Data Dragon 13.22.1/img/champion/LeeSin.png"
+    },
+    "Leona": {
+      "label": "Leona",
+      "file": "champions/Leona.png",
+      "source": "Data Dragon 13.22.1/img/champion/Leona.png"
+    },
+    "Lillia": {
+      "label": "Lillia",
+      "file": "champions/Lillia.png",
+      "source": "Data Dragon 13.22.1/img/champion/Lillia.png"
+    },
+    "Lissandra": {
+      "label": "Lissandra",
+      "file": "champions/Lissandra.png",
+      "source": "Data Dragon 13.22.1/img/champion/Lissandra.png"
+    },
+    "Lucian": {
+      "label": "Lucian",
+      "file": "champions/Lucian.png",
+      "source": "Data Dragon 13.22.1/img/champion/Lucian.png"
+    },
+    "Lulu": {
+      "label": "Lulu",
+      "file": "champions/Lulu.png",
+      "source": "Data Dragon 13.22.1/img/champion/Lulu.png"
+    },
+    "Lux": {
+      "label": "Lux",
+      "file": "champions/Lux.png",
+      "source": "Data Dragon 13.22.1/img/champion/Lux.png"
+    },
+    "Malphite": {
+      "label": "Malphite",
+      "file": "champions/Malphite.png",
+      "source": "Data Dragon 13.22.1/img/champion/Malphite.png"
+    },
+    "Malzahar": {
+      "label": "Malzahar",
+      "file": "champions/Malzahar.png",
+      "source": "Data Dragon 13.22.1/img/champion/Malzahar.png"
+    },
+    "Maokai": {
+      "label": "Maokai",
+      "file": "champions/Maokai.png",
+      "source": "Data Dragon 13.22.1/img/champion/Maokai.png"
+    },
+    "MasterYi": {
+      "label": "Master Yi",
+      "file": "champions/MasterYi.png",
+      "source": "Data Dragon 13.22.1/img/champion/MasterYi.png"
+    },
+    "Mel": {
+      "label": "Mel",
+      "file": "champions/Mel.png",
+      "source": "https://ddragon.leagueoflegends.com/cdn/15.14.1/img/champion/Mel.png"
+    },
+    "Milio": {
+      "label": "Milio",
+      "file": "champions/Milio.png",
+      "source": "Data Dragon 13.22.1/img/champion/Milio.png"
+    },
+    "MissFortune": {
+      "label": "Miss Fortune",
+      "file": "champions/MissFortune.png",
+      "source": "Data Dragon 13.22.1/img/champion/MissFortune.png"
+    },
+    "MonkeyKing": {
+      "label": "Wukong",
+      "file": "champions/MonkeyKing.png",
+      "source": "Data Dragon 13.22.1/img/champion/MonkeyKing.png"
+    },
+    "Mordekaiser": {
+      "label": "Mordekaiser",
+      "file": "champions/Mordekaiser.png",
+      "source": "Data Dragon 13.22.1/img/champion/Mordekaiser.png"
+    },
+    "Morgana": {
+      "label": "Morgana",
+      "file": "champions/Morgana.png",
+      "source": "Data Dragon 13.22.1/img/champion/Morgana.png"
+    },
+    "Naafiri": {
+      "label": "Naafiri",
+      "file": "champions/Naafiri.png",
+      "source": "Data Dragon 13.22.1/img/champion/Naafiri.png"
+    },
+    "Nami": {
+      "label": "Nami",
+      "file": "champions/Nami.png",
+      "source": "Data Dragon 13.22.1/img/champion/Nami.png"
+    },
+    "Nasus": {
+      "label": "Nasus",
+      "file": "champions/Nasus.png",
+      "source": "Data Dragon 13.22.1/img/champion/Nasus.png"
+    },
+    "Nautilus": {
+      "label": "Nautilus",
+      "file": "champions/Nautilus.png",
+      "source": "Data Dragon 13.22.1/img/champion/Nautilus.png"
+    },
+    "Neeko": {
+      "label": "Neeko",
+      "file": "champions/Neeko.png",
+      "source": "Data Dragon 13.22.1/img/champion/Neeko.png"
+    },
+    "Nidalee": {
+      "label": "Nidalee",
+      "file": "champions/Nidalee.png",
+      "source": "Data Dragon 13.22.1/img/champion/Nidalee.png"
+    },
+    "Nilah": {
+      "label": "Nilah",
+      "file": "champions/Nilah.png",
+      "source": "Data Dragon 13.22.1/img/champion/Nilah.png"
+    },
+    "Nocturne": {
+      "label": "Nocturne",
+      "file": "champions/Nocturne.png",
+      "source": "Data Dragon 13.22.1/img/champion/Nocturne.png"
+    },
+    "Nunu": {
+      "label": "Nunu & Willump",
+      "file": "champions/Nunu.png",
+      "source": "Data Dragon 13.22.1/img/champion/Nunu.png"
+    },
+    "Olaf": {
+      "label": "Olaf",
+      "file": "champions/Olaf.png",
+      "source": "Data Dragon 13.22.1/img/champion/Olaf.png"
+    },
+    "Orianna": {
+      "label": "Orianna",
+      "file": "champions/Orianna.png",
+      "source": "Data Dragon 13.22.1/img/champion/Orianna.png"
+    },
+    "Ornn": {
+      "label": "Ornn",
+      "file": "champions/Ornn.png",
+      "source": "Data Dragon 13.22.1/img/champion/Ornn.png"
+    },
+    "Pantheon": {
+      "label": "Pantheon",
+      "file": "champions/Pantheon.png",
+      "source": "Data Dragon 13.22.1/img/champion/Pantheon.png"
+    },
+    "Poppy": {
+      "label": "Poppy",
+      "file": "champions/Poppy.png",
+      "source": "Data Dragon 13.22.1/img/champion/Poppy.png"
+    },
+    "Pyke": {
+      "label": "Pyke",
+      "file": "champions/Pyke.png",
+      "source": "Data Dragon 13.22.1/img/champion/Pyke.png"
+    },
+    "Qiyana": {
+      "label": "Qiyana",
+      "file": "champions/Qiyana.png",
+      "source": "Data Dragon 13.22.1/img/champion/Qiyana.png"
+    },
+    "Quinn": {
+      "label": "Quinn",
+      "file": "champions/Quinn.png",
+      "source": "Data Dragon 13.22.1/img/champion/Quinn.png"
+    },
+    "Rakan": {
+      "label": "Rakan",
+      "file": "champions/Rakan.png",
+      "source": "Data Dragon 13.22.1/img/champion/Rakan.png"
+    },
+    "Rammus": {
+      "label": "Rammus",
+      "file": "champions/Rammus.png",
+      "source": "Data Dragon 13.22.1/img/champion/Rammus.png"
+    },
+    "RekSai": {
+      "label": "Rek'Sai",
+      "file": "champions/RekSai.png",
+      "source": "Data Dragon 13.22.1/img/champion/RekSai.png"
+    },
+    "Rell": {
+      "label": "Rell",
+      "file": "champions/Rell.png",
+      "source": "Data Dragon 13.22.1/img/champion/Rell.png"
+    },
+    "Renata": {
+      "label": "Renata Glasc",
+      "file": "champions/Renata.png",
+      "source": "Data Dragon 13.22.1/img/champion/Renata.png"
+    },
+    "Renekton": {
+      "label": "Renekton",
+      "file": "champions/Renekton.png",
+      "source": "Data Dragon 13.22.1/img/champion/Renekton.png"
+    },
+    "Rengar": {
+      "label": "Rengar",
+      "file": "champions/Rengar.png",
+      "source": "Data Dragon 13.22.1/img/champion/Rengar.png"
+    },
+    "Riven": {
+      "label": "Riven",
+      "file": "champions/Riven.png",
+      "source": "Data Dragon 13.22.1/img/champion/Riven.png"
+    },
+    "Rumble": {
+      "label": "Rumble",
+      "file": "champions/Rumble.png",
+      "source": "Data Dragon 13.22.1/img/champion/Rumble.png"
+    },
+    "Ryze": {
+      "label": "Ryze",
+      "file": "champions/Ryze.png",
+      "source": "Data Dragon 13.22.1/img/champion/Ryze.png"
+    },
+    "Samira": {
+      "label": "Samira",
+      "file": "champions/Samira.png",
+      "source": "Data Dragon 13.22.1/img/champion/Samira.png"
+    },
+    "Sejuani": {
+      "label": "Sejuani",
+      "file": "champions/Sejuani.png",
+      "source": "Data Dragon 13.22.1/img/champion/Sejuani.png"
+    },
+    "Senna": {
+      "label": "Senna",
+      "file": "champions/Senna.png",
+      "source": "Data Dragon 13.22.1/img/champion/Senna.png"
+    },
+    "Seraphine": {
+      "label": "Seraphine",
+      "file": "champions/Seraphine.png",
+      "source": "Data Dragon 13.22.1/img/champion/Seraphine.png"
+    },
+    "Sett": {
+      "label": "Sett",
+      "file": "champions/Sett.png",
+      "source": "Data Dragon 13.22.1/img/champion/Sett.png"
+    },
+    "Shaco": {
+      "label": "Shaco",
+      "file": "champions/Shaco.png",
+      "source": "Data Dragon 13.22.1/img/champion/Shaco.png"
+    },
+    "Shen": {
+      "label": "Shen",
+      "file": "champions/Shen.png",
+      "source": "Data Dragon 13.22.1/img/champion/Shen.png"
+    },
+    "Shyvana": {
+      "label": "Shyvana",
+      "file": "champions/Shyvana.png",
+      "source": "Data Dragon 13.22.1/img/champion/Shyvana.png"
+    },
+    "Singed": {
+      "label": "Singed",
+      "file": "champions/Singed.png",
+      "source": "Data Dragon 13.22.1/img/champion/Singed.png"
+    },
+    "Sion": {
+      "label": "Sion",
+      "file": "champions/Sion.png",
+      "source": "Data Dragon 13.22.1/img/champion/Sion.png"
+    },
+    "Sivir": {
+      "label": "Sivir",
+      "file": "champions/Sivir.png",
+      "source": "Data Dragon 13.22.1/img/champion/Sivir.png"
+    },
+    "Skarner": {
+      "label": "Skarner",
+      "file": "champions/Skarner.png",
+      "source": "Data Dragon 13.22.1/img/champion/Skarner.png"
+    },
+    "Smolder": {
+      "label": "Smolder",
+      "file": "champions/Smolder.png",
+      "source": "https://ddragon.leagueoflegends.com/cdn/15.14.1/img/champion/Smolder.png"
+    },
+    "Sona": {
+      "label": "Sona",
+      "file": "champions/Sona.png",
+      "source": "Data Dragon 13.22.1/img/champion/Sona.png"
+    },
+    "Soraka": {
+      "label": "Soraka",
+      "file": "champions/Soraka.png",
+      "source": "Data Dragon 13.22.1/img/champion/Soraka.png"
+    },
+    "Swain": {
+      "label": "Swain",
+      "file": "champions/Swain.png",
+      "source": "Data Dragon 13.22.1/img/champion/Swain.png"
+    },
+    "Sylas": {
+      "label": "Sylas",
+      "file": "champions/Sylas.png",
+      "source": "Data Dragon 13.22.1/img/champion/Sylas.png"
+    },
+    "Syndra": {
+      "label": "Syndra",
+      "file": "champions/Syndra.png",
+      "source": "Data Dragon 13.22.1/img/champion/Syndra.png"
+    },
+    "TahmKench": {
+      "label": "Tahm Kench",
+      "file": "champions/TahmKench.png",
+      "source": "Data Dragon 13.22.1/img/champion/TahmKench.png"
+    },
+    "Taliyah": {
+      "label": "Taliyah",
+      "file": "champions/Taliyah.png",
+      "source": "Data Dragon 13.22.1/img/champion/Taliyah.png"
+    },
+    "Talon": {
+      "label": "Talon",
+      "file": "champions/Talon.png",
+      "source": "Data Dragon 13.22.1/img/champion/Talon.png"
+    },
+    "Taric": {
+      "label": "Taric",
+      "file": "champions/Taric.png",
+      "source": "Data Dragon 13.22.1/img/champion/Taric.png"
+    },
+    "Teemo": {
+      "label": "Teemo",
+      "file": "champions/Teemo.png",
+      "source": "Data Dragon 13.22.1/img/champion/Teemo.png"
+    },
+    "Thresh": {
+      "label": "Thresh",
+      "file": "champions/Thresh.png",
+      "source": "Data Dragon 13.22.1/img/champion/Thresh.png"
+    },
+    "Tristana": {
+      "label": "Tristana",
+      "file": "champions/Tristana.png",
+      "source": "Data Dragon 13.22.1/img/champion/Tristana.png"
+    },
+    "Trundle": {
+      "label": "Trundle",
+      "file": "champions/Trundle.png",
+      "source": "Data Dragon 13.22.1/img/champion/Trundle.png"
+    },
+    "Tryndamere": {
+      "label": "Tryndamere",
+      "file": "champions/Tryndamere.png",
+      "source": "Data Dragon 13.22.1/img/champion/Tryndamere.png"
+    },
+    "TwistedFate": {
+      "label": "Twisted Fate",
+      "file": "champions/TwistedFate.png",
+      "source": "Data Dragon 13.22.1/img/champion/TwistedFate.png"
+    },
+    "Twitch": {
+      "label": "Twitch",
+      "file": "champions/Twitch.png",
+      "source": "Data Dragon 13.22.1/img/champion/Twitch.png"
+    },
+    "Udyr": {
+      "label": "Udyr",
+      "file": "champions/Udyr.png",
+      "source": "Data Dragon 13.22.1/img/champion/Udyr.png"
+    },
+    "Urgot": {
+      "label": "Urgot",
+      "file": "champions/Urgot.png",
+      "source": "Data Dragon 13.22.1/img/champion/Urgot.png"
+    },
+    "Varus": {
+      "label": "Varus",
+      "file": "champions/Varus.png",
+      "source": "Data Dragon 13.22.1/img/champion/Varus.png"
+    },
+    "Vayne": {
+      "label": "Vayne",
+      "file": "champions/Vayne.png",
+      "source": "Data Dragon 13.22.1/img/champion/Vayne.png"
+    },
+    "Veigar": {
+      "label": "Veigar",
+      "file": "champions/Veigar.png",
+      "source": "Data Dragon 13.22.1/img/champion/Veigar.png"
+    },
+    "Velkoz": {
+      "label": "Vel'Koz",
+      "file": "champions/Velkoz.png",
+      "source": "Data Dragon 13.22.1/img/champion/Velkoz.png"
+    },
+    "Vex": {
+      "label": "Vex",
+      "file": "champions/Vex.png",
+      "source": "Data Dragon 13.22.1/img/champion/Vex.png"
+    },
+    "Vi": {
+      "label": "Vi",
+      "file": "champions/Vi.png",
+      "source": "Data Dragon 13.22.1/img/champion/Vi.png"
+    },
+    "Viego": {
+      "label": "Viego",
+      "file": "champions/Viego.png",
+      "source": "Data Dragon 13.22.1/img/champion/Viego.png"
+    },
+    "Viktor": {
+      "label": "Viktor",
+      "file": "champions/Viktor.png",
+      "source": "Data Dragon 13.22.1/img/champion/Viktor.png"
+    },
+    "Vladimir": {
+      "label": "Vladimir",
+      "file": "champions/Vladimir.png",
+      "source": "Data Dragon 13.22.1/img/champion/Vladimir.png"
+    },
+    "Volibear": {
+      "label": "Volibear",
+      "file": "champions/Volibear.png",
+      "source": "Data Dragon 13.22.1/img/champion/Volibear.png"
+    },
+    "Warwick": {
+      "label": "Warwick",
+      "file": "champions/Warwick.png",
+      "source": "Data Dragon 13.22.1/img/champion/Warwick.png"
+    },
+    "Xayah": {
+      "label": "Xayah",
+      "file": "champions/Xayah.png",
+      "source": "Data Dragon 13.22.1/img/champion/Xayah.png"
+    },
+    "Xerath": {
+      "label": "Xerath",
+      "file": "champions/Xerath.png",
+      "source": "Data Dragon 13.22.1/img/champion/Xerath.png"
+    },
+    "XinZhao": {
+      "label": "Xin Zhao",
+      "file": "champions/XinZhao.png",
+      "source": "Data Dragon 13.22.1/img/champion/XinZhao.png"
+    },
+    "Yasuo": {
+      "label": "Yasuo",
+      "file": "champions/Yasuo.png",
+      "source": "Data Dragon 13.22.1/img/champion/Yasuo.png"
+    },
+    "Yone": {
+      "label": "Yone",
+      "file": "champions/Yone.png",
+      "source": "Data Dragon 13.22.1/img/champion/Yone.png"
+    },
+    "Yorick": {
+      "label": "Yorick",
+      "file": "champions/Yorick.png",
+      "source": "Data Dragon 13.22.1/img/champion/Yorick.png"
+    },
+    "Yunara": {
+      "label": "Yunara",
+      "file": "champions/Yunara.png",
+      "source": "https://ddragon.leagueoflegends.com/cdn/15.14.1/img/champion/Yunara.png"
+    },
+    "Yuumi": {
+      "label": "Yuumi",
+      "file": "champions/Yuumi.png",
+      "source": "Data Dragon 13.22.1/img/champion/Yuumi.png"
+    },
+    "Zac": {
+      "label": "Zac",
+      "file": "champions/Zac.png",
+      "source": "Data Dragon 13.22.1/img/champion/Zac.png"
+    },
+    "Zed": {
+      "label": "Zed",
+      "file": "champions/Zed.png",
+      "source": "Data Dragon 13.22.1/img/champion/Zed.png"
+    },
+    "Zeri": {
+      "label": "Zeri",
+      "file": "champions/Zeri.png",
+      "source": "Data Dragon 13.22.1/img/champion/Zeri.png"
+    },
+    "Ziggs": {
+      "label": "Ziggs",
+      "file": "champions/Ziggs.png",
+      "source": "Data Dragon 13.22.1/img/champion/Ziggs.png"
+    },
+    "Zilean": {
+      "label": "Zilean",
+      "file": "champions/Zilean.png",
+      "source": "Data Dragon 13.22.1/img/champion/Zilean.png"
+    },
+    "Zoe": {
+      "label": "Zoe",
+      "file": "champions/Zoe.png",
+      "source": "Data Dragon 13.22.1/img/champion/Zoe.png"
+    },
+    "Zyra": {
+      "label": "Zyra",
+      "file": "champions/Zyra.png",
+      "source": "Data Dragon 13.22.1/img/champion/Zyra.png"
+    }
+  },
+  "ranks": {
+    "PLATINUM": {
+      "file": "ranks/PLATINUM.png"
+    },
+    "EMERALD": {
+      "file": "ranks/EMERALD.png"
+    },
+    "DIAMOND": {
+      "file": "ranks/DIAMOND.png"
+    },
+    "MASTER": {
+      "file": "ranks/MASTER.png"
+    },
+    "GRANDMASTER": {
+      "file": "ranks/GRANDMASTER.png"
+    },
+    "CHALLENGER": {
+      "file": "ranks/CHALLENGER.png"
+    }
+  }
+}

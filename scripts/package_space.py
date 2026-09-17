@@ -16,6 +16,7 @@ REQUIRED = (
     "artifacts/two_tower/model.pt", "artifacts/two_tower/metadata.json",
     "artifacts/team_model/model.pt", "artifacts/team_model/metadata.json",
     "assets/fonts/BeaufortforLOL-Bold.ttf", "assets/fonts/NOTICE.md",
+    "assets/league/catalog.json", "assets/league/NOTICE.md",
 )
 
 CLOUD_RUN_FILES = {
@@ -82,6 +83,17 @@ def package(root: Path, output: Path, target: str = "space") -> dict:
     )
 
     files = {name: root / name for name in REQUIRED}
+    # Explicit catalog allowlist: don't ship original asset packs or temp downloads.
+    artwork = json.loads((root / "assets/league/catalog.json").read_text(encoding="utf-8"))
+    asset_names = [entry["file"] for group in ("champions", "ranks") for entry in artwork[group].values()]
+    asset_names.extend(f"divisions/{division}.svg" for division in ("I", "II", "III", "IV"))
+    asset_root = (root / "assets/league").resolve()
+    for name in asset_names:
+        path = asset_root / name
+        if (not path.resolve().is_relative_to(asset_root) or path.is_symlink()
+                or not path.is_file() or path.suffix not in {".png", ".svg"}):
+            raise ValueError(f"Missing or unsafe UI artwork: {name}")
+        files["assets/league/" + name] = path
     for folder, pattern in (("src", "*.py"), ("scripts", "*.py"), ("docs", "*.md"), ("artifacts", "*.json")):
         for path in (root / folder).rglob(pattern):
             if not path.is_symlink():

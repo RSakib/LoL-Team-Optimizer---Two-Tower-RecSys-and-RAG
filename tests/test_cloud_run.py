@@ -69,7 +69,8 @@ def test_model_download_fails_closed_on_missing_file(monkeypatch, tmp_path):
 
 def test_cloud_run_cost_and_upload_safety_configuration():
     deploy = (ROOT / "deploy/cloudrun/deploy.sh").read_text()
-    for flag in ("--min 0", "--max 1", "--cpu-throttling", "--no-allow-unauthenticated", "--concurrency 8"):
+    for flag in ("--min 0", "--max 1", "--min-instances 0", "--max-instances 1",
+                 "--cpu-throttling", "--no-allow-unauthenticated", "--concurrency 8"):
         assert flag in deploy
     assert "--dry-run" in deploy and '"DEPLOY"' in deploy
     for name in (".dockerignore", ".gcloudignore"):
