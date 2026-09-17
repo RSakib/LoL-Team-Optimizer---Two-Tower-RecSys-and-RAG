@@ -5,8 +5,6 @@ roles around an anonymous finder. A second trained model scores every complete f
 pair interactions, champion-pool features, and role-relative playstyle statistics. A local Sentence Transformer and
 Chroma index interpret natural-language preferences and ground optional local Ollama lineup explanations.
 
-Training, evaluation, and serving use no synthetic players, mock recommendations, or random fallback candidates.
-
 ## Dataset
 
 This project uses the real ranked-match records from
