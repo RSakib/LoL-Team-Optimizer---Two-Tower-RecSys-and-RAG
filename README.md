@@ -1,7 +1,11 @@
 # League of Legends: Team Recommender
 
+![Gradio Screenshot](assets/LoLRecScreenshot.png)
+
 A real-data-only teammate recommendation system combining a **trained two-tower model**,
 a **joint lineup scorer**, and **retrieval-augmented generation (RAG)**.
+
+Currently hosted here: [Live Demo](https://league-team-recommender-u4kxzm6j4q-uc.a.run.app/)
 
 Choose your primary role and rank to find four teammates for the remaining roles. Add
 preferences or target champions to refine the search, then request grounded scouting
