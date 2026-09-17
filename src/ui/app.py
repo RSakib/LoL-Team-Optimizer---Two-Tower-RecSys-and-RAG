@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import html
 import os
+import re
 from typing import Any
+from uuid import uuid4
 
 import gradio as gr
 import requests
 
 from src.config import API_URL
+from src.ui import backend
+from src.ranks import MATCHMAKING_TIERS
+from src.name_safety import mask_name, mask_known_names
+from src.ui.theme import TITLE, THEME, GLOBAL_CSS, FONT_HEAD, HERO_HTML, HERO_CSS, SECTION_CSS, EMPTY_HTML
 
 
 ROLE_LABELS = {
@@ -15,16 +21,20 @@ ROLE_LABELS = {
     "Bottom": "BOTTOM", "Support": "SUPPORT", "Fill": "FILL",
 }
 DISPLAY_ROLE = {value: key for key, value in ROLE_LABELS.items()}
-TIERS = [
-    "IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD",
-    "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER",
-]
+TIERS = list(MATCHMAKING_TIERS)
 DIVISIONS = ["Any division", "IV", "III", "II", "I"]
 
+# Delegation survives HTML updates; only explicit card buttons trigger inference.
+CARD_SCOUT_JS = """
+element.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-candidate-key]');
+    if (!button || !element.contains(button)) return;
+    if (button.disabled) return;
+    trigger('scout', {candidate_key: button.dataset.candidateKey, revision: button.dataset.revision});
+});
+"""
+
 APP_CSS = """
-.gradio-container {
-    max-width: 1480px !important;
-}
 #team-results {
     margin-top: 1.25rem;
 }
@@ -32,6 +42,12 @@ APP_CSS = """
     color: var(--body-text-color);
     font-family: var(--font);
 }
+.empty-lineup { border:1px dashed #37525a; background:linear-gradient(135deg,#0c202c,#07131d); text-align:center; padding:30px 20px; border-radius:6px; }
+.empty-mark { font-size:30px; color:#c8aa6e; }
+.empty-lineup h2 { margin:8px 0; font:600 18px/1.4 Arial,sans-serif; color:#f0e6d2; }
+.empty-lineup p { margin:0 auto; max-width:520px; color:#a3b4bc; font-size:13px; line-height:1.6; }
+.empty-slots { display:flex; justify-content:center; gap:10px; margin-top:20px; }
+.empty-slots span { border:1px solid #28424b; color:#71939d; padding:10px 20px; font-size:11px; letter-spacing:.1em; }
 .results-header {
     display: flex;
     align-items: flex-end;
@@ -70,8 +86,8 @@ APP_CSS = """
 }
 .team-metric {
     border: 1px solid var(--border-color-primary);
-    border-radius: 14px;
-    background: var(--background-fill-secondary);
+    border-radius: 5px;
+    background: linear-gradient(135deg, #102835, #081923);
     padding: 1rem;
 }
 .team-metric span, .player-metric span {
@@ -99,7 +115,7 @@ APP_CSS = """
 }
 .lineup-chip {
     border: 1px solid #c89b3c55;
-    border-radius: 12px;
+    border-radius: 5px;
     background: linear-gradient(135deg, #c89b3c18, transparent);
     padding: .85rem;
 }
@@ -125,7 +141,7 @@ APP_CSS = """
     margin: 0 0 1.4rem;
     padding: .85rem 1rem;
 }
-.team-evidence summary, .model-evidence summary {
+.team-evidence summary {
     cursor: pointer;
     font-weight: 700;
 }
@@ -142,7 +158,7 @@ APP_CSS = """
     margin-bottom: .7rem;
 }
 .target-chip, .champion-chip, .selected-badge, .rank-badge {
-    border-radius: 999px;
+    border-radius: 3px;
     display: inline-block;
     font-size: .72rem;
     font-weight: 700;
@@ -154,8 +170,8 @@ APP_CSS = """
 }
 .player-card {
     border: 1px solid var(--border-color-primary);
-    border-radius: 16px;
-    background: var(--background-fill-secondary);
+    border-radius: 6px;
+    background: linear-gradient(145deg, #102835, #07141f);
     box-shadow: 0 5px 18px rgba(0, 0, 0, .08);
     min-width: 0;
     overflow: hidden;
@@ -168,8 +184,8 @@ APP_CSS = """
     transform: translateY(-2px);
 }
 .player-card.selected {
-    border: 1px solid #c89b3c;
-    box-shadow: 0 0 0 1px #c89b3c33, 0 8px 24px rgba(200, 155, 60, .12);
+    border: 1px solid #c8aa6e;
+    box-shadow: inset 0 3px 0 #c8aa6e, 0 8px 24px #00000030;
 }
 .player-card-top {
     align-items: center;
@@ -200,9 +216,9 @@ APP_CSS = """
     margin: .35rem 0 .9rem;
 }
 .rank-badge {
-    background: #0f6cbd22;
-    border: 1px solid #0f6cbd55;
-    color: #56a8f5;
+    background: #0ac8b914;
+    border: 1px solid #0ac8b944;
+    color: #7dd9db;
 }
 .player-metrics {
     display: grid;
@@ -231,29 +247,39 @@ APP_CSS = """
     gap: .35rem;
     min-height: 1.8rem;
 }
-.model-evidence {
+.candidate-scout-button {
+    width: 100%; margin-top: 1rem; padding: .7rem; border-radius: 4px;
+    border: 1px solid #c8aa6e; background: #102835; color: #f0e6d2;
+    font: 600 .85rem/1.4 Arial, sans-serif; cursor: pointer;
+}
+.candidate-scout-button:hover { background: #193b49; }
+.candidate-scout-button:focus-visible { outline: 2px solid #0ac8b9; outline-offset: 3px; }
+.candidate-scout {
     border-top: 1px solid var(--border-color-primary);
     font-size: .8rem;
     margin-top: .9rem;
     padding-top: .75rem;
 }
-.evidence-scores {
-    color: var(--body-text-color-subdued);
-    line-height: 1.65;
-    margin-top: .65rem;
-}
-.profile-document {
+.candidate-report {
     background: var(--background-fill-primary);
     border-radius: 8px;
     line-height: 1.45;
     margin-top: .55rem;
-    max-height: 9rem;
+    max-height: 26rem;
     overflow-y: auto;
     padding: .65rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
+.candidate-report:empty { display: none; }
+.candidate-scout-button:disabled { opacity: .65; cursor: wait; }
 @media (max-width: 720px) {
     .team-metrics { grid-template-columns: 1fr; }
     .results-header, .role-heading { align-items: flex-start; flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .player-card { transition: none; }
+    .player-card:hover { transform: none; }
 }
 """
 
@@ -317,7 +343,7 @@ def _candidate_selector(
             key = f"{role}::{player_id}"
             name = candidate.get("player_name") or player_id
             selected = " · selected" if candidate.get("selected_for_lineup") else ""
-            choices.append((f"{_role_name(role)} — {name}{selected}", key))
+            choices.append((f"{_role_name(role)} — {mask_name(str(name))}{selected}", key))
             candidates[key] = {
                 "summoner_id": player_id,
                 "slot_role": role,
@@ -326,7 +352,10 @@ def _candidate_selector(
     return choices, candidates
 
 
-def _render_team(data: dict[str, Any]) -> str:
+def _render_team(
+    data: dict[str, Any], reports: dict[str, str] | None = None,
+    loading_key: str | None = None, revision: str = "",
+) -> str:
     status = data.get("status")
     message = data.get("message")
     team = data.get("team") or {}
@@ -374,7 +403,7 @@ def _render_team(data: dict[str, Any]) -> str:
             chips.append(
                 '<div class="lineup-chip">'
                 f'<div class="lineup-chip-role">{_safe(_role_name(candidate.get("slot_role")))}</div>'
-                f'<strong class="lineup-chip-name">{_safe(name)}</strong>'
+                f'<strong class="lineup-chip-name">{_safe(mask_name(str(name)))}</strong>'
                 f'<div class="lineup-chip-meta">{_safe(rank)} · {float(candidate.get("recommendation_score", 0.0)):.1f} score</div>'
                 '</div>'
             )
@@ -421,20 +450,19 @@ def _render_team(data: dict[str, Any]) -> str:
                 f'<span class="champion-chip">{_safe(champion)} · {int(games)}</span>'
                 for champion, games in champions.items()
             ) or '<span class="champion-chip">Unavailable</span>'
-            rag_rank = candidate.get("rag_rank")
-            rag_similarity = candidate.get("rag_similarity")
-            rag_evidence = ""
-            if rag_rank is not None:
-                rag_evidence += f'<br>RAG rank: <strong>#{int(rag_rank)}</strong>'
-            elif rag_similarity is not None:
-                rag_evidence += '<br>RAG rank: <strong>Outside top retrieval</strong>'
-            if rag_similarity is not None:
-                rag_evidence += f' · similarity <strong>{float(rag_similarity):.3f}</strong>'
+            candidate_key = str(slot.get("role", "")) + "::" + str(candidate.get("summoner_id", ""))
+            busy = candidate_key == loading_key
+            report = (reports or {}).get(candidate_key, "")
+            if busy:
+                report = "Retrieving this teammate’s recorded profile and generating their RAG scout…"
+            report_html = _inline_report_html(report)
+            button_label = "Scouting this candidate…" if busy else "Why this candidate? · RAG scout"
+            disabled = ' disabled aria-busy="true"' if busy else ""
             card_class = "player-card selected" if is_selected else "player-card"
             cards.append(
                 f'<article class="{card_class}">'
                 f'<div class="player-card-top"><span class="candidate-number">OPTION {index}</span>{selected_badge}</div>'
-                f'<h4 class="player-name">{_safe(name)}</h4>'
+                f'<h4 class="player-name">{_safe(mask_name(str(name)))}</h4>'
                 f'<div class="player-rank"><span class="rank-badge">{_safe(rank)}</span>'
                 f'<span>{int(candidate.get("matches", 0))} recorded matches</span></div>'
                 '<div class="player-metrics">'
@@ -444,13 +472,12 @@ def _render_team(data: dict[str, Any]) -> str:
                 '</div>'
                 '<div class="champion-label">Recorded top champions</div>'
                 f'<div class="champion-list">{champion_chips}</div>'
-                '<details class="model-evidence"><summary>Why this candidate</summary>'
-                '<div class="evidence-scores">'
-                f'Two-tower rank: <strong>#{_safe(candidate.get("two_tower_rank", "Unavailable"))}</strong> · '
-                f'similarity <strong>{float(candidate.get("two_tower_similarity", 0.0)):.3f}</strong>{rag_evidence}'
-                '</div>'
-                f'<div class="profile-document">{_safe(candidate.get("rag_document", "No indexed profile document available."))}</div>'
-                '</details></article>'
+                '<section class="candidate-scout">'
+                f'<button type="button" class="candidate-scout-button"{disabled} '
+                f'data-candidate-key="{_safe(candidate_key)}" data-revision="{_safe(revision)}" '
+                f'aria-label="Scout {_safe(mask_name(str(name)))} for {_safe(role_name)}">{button_label}</button>'
+                f'<div class="candidate-report" role="status" aria-live="polite">{report_html}</div>'
+                '</section></article>'
             )
         sections.append(
             '<section class="role-section"><div class="role-heading">'
@@ -473,7 +500,7 @@ def recommend_team(
     mid_champion: str,
     bottom_champion: str,
     support_champion: str,
-) -> tuple[str, dict[str, Any], Any, str, str]:
+) -> tuple[str, dict[str, Any], str]:
     primary_role = ROLE_LABELS[primary_role_label]
     targets = _target_champions(
         primary_role, top_champion, jungle_champion, mid_champion,
@@ -489,14 +516,14 @@ def recommend_team(
         "max_tier_gap": int(max_tier_gap),
     }
     try:
-        response = requests.post(f"{API_URL}/team/recommend", json=payload, timeout=120)
+        response = backend.post(f"{API_URL}/team/recommend", json=payload, timeout=120)
         if not response.ok:
             return (
                 _error_panel(
                     "Request failed",
                     _response_error(response, response.text or "The API rejected the request."),
                 ),
-                {}, gr.update(choices=[], value=None), "", "",
+                {}, "",
             )
         data = response.json()
     except (requests.RequestException, ValueError) as exc:
@@ -505,12 +532,15 @@ def recommend_team(
                 "API connection failed",
                 f"{exc} Confirm FastAPI is running at {API_URL}.",
             ),
-            {}, gr.update(choices=[], value=None), "", "",
+            {}, "",
         )
 
-    choices, candidates = _candidate_selector(data)
-    state = {"response": data, "preference": preference or "", "candidates": candidates}
-    return _render_team(data), state, gr.update(choices=choices, value=None), "", ""
+    _, candidates = _candidate_selector(data)
+    state = {
+        "response": data, "preference": preference or "", "candidates": candidates,
+        "candidate_reports": {}, "revision": uuid4().hex,
+    }
+    return _render_team(data, revision=state["revision"]), state, ""
 
 
 def scout_lineup(state: dict[str, Any]) -> str:
@@ -518,7 +548,7 @@ def scout_lineup(state: dict[str, Any]) -> str:
         return "Build a complete team before requesting a lineup explanation."
     team = state["response"].get("team") or {}
     if not team.get("complete") or not team.get("suggested_lineup"):
-        return "A complete real lineup is required before Ollama can explain it."
+        return "A complete real lineup is required before the local model can explain it."
     lineup = {
         candidate["slot_role"]: candidate["summoner_id"]
         for candidate in team["suggested_lineup"]
@@ -535,10 +565,10 @@ def scout_lineup(state: dict[str, Any]) -> str:
         "preference": state.get("preference", ""),
     }
     try:
-        response = requests.post(f"{API_URL}/team/scout", json=payload, timeout=180)
+        response = backend.post(f"{API_URL}/team/scout", json=payload, timeout=900)
         if not response.ok:
             return f"**Lineup report unavailable:** {_safe(_response_error(response, response.text))}"
-        return "## Grounded lineup explanation\n\n" + response.json()["report"]
+        return "## Grounded lineup explanation\n\n" + _display_report(response.json()["report"], state)
     except (requests.RequestException, ValueError, KeyError) as exc:
         return f"**Lineup report failed:** {_safe(exc)}"
 
@@ -551,61 +581,100 @@ def scout_candidate(candidate_key: str | None, state: dict[str, Any]) -> str:
         return "That candidate is no longer present in the current recommendation results."
     payload = {**candidate, "preference": state.get("preference", "")}
     try:
-        response = requests.post(f"{API_URL}/scout", json=payload, timeout=180)
+        response = backend.post(f"{API_URL}/scout", json=payload, timeout=900)
         if not response.ok:
             return f"**Candidate report unavailable:** {_safe(_response_error(response, response.text))}"
-        return "## Grounded candidate scout report\n\n" + response.json()["report"]
+        label = _role_name(candidate.get("slot_role"))
+        for slot in (state.get("response", {}).get("team") or {}).get("slots", []):
+            for player in slot.get("candidates", []):
+                if str(player.get("summoner_id")) == candidate["summoner_id"]:
+                    label += " — " + mask_name(str(player.get("player_name") or candidate["summoner_id"]))
+                    break
+        return "## Candidate scout: " + _safe(label).replace("*", "&#42;") + "\n\n" + _display_report(response.json()["report"], state)
     except (requests.RequestException, ValueError, KeyError) as exc:
         return f"**Candidate report failed:** {_safe(exc)}"
 
 
+def _display_report(report: str, state: dict[str, Any]) -> str:
+    names = [str(player.get("player_name") or player.get("summoner_id", ""))
+             for slot in (state.get("response", {}).get("team") or {}).get("slots", [])
+             for player in slot.get("candidates", [])]
+    # Entities render literal asterisks instead of Markdown emphasis/rules.
+    return re.sub(r"\*{3,}", lambda match: "&#42;" * len(match.group()), mask_known_names(report, names))
+
+
+def _inline_report_html(report: str) -> str:
+    # Render a small, safe subset of Markdown. Escape everything before adding
+    # our own tags; never insert model-produced HTML into the card.
+    safe = html.escape(html.unescape(report))
+    safe = re.sub(r"(?m)^#{1,6}\s+([^\n]+)", r"<strong>\1</strong>", safe)
+    return re.sub(r"(?<!\*)\*\*([^*\n]+)\*\*(?!\*)", r"<strong>\1</strong>", safe)
+
+
+def scout_card(state: dict[str, Any], evt: gr.EventData):
+    key = getattr(evt, "candidate_key", None)
+    if (not isinstance(key, str) or key not in (state or {}).get("candidates", {})
+            or getattr(evt, "revision", None) != (state or {}).get("revision")):
+        gr.Warning("This card is no longer in your current results. Please use the newly built lineup.")
+        yield gr.skip(), gr.skip()
+        return
+    reports = dict(state.get("candidate_reports") or {})
+    yield _render_team(state["response"], reports, loading_key=key, revision=state["revision"]), gr.skip()
+    reports[key] = scout_candidate(key, state)
+    updated = {**state, "candidate_reports": reports}
+    yield _render_team(state["response"], reports, revision=state["revision"]), updated
+
+
+def scout_lineup_ui(state: dict[str, Any]):
+    yield "Generating a whole-lineup RAG report from the four selected teammates…"
+    yield scout_lineup(state)
+
+
 def build_app() -> gr.Blocks:
-    with gr.Blocks(title="LoL joint team recommender") as demo:
-        gr.Markdown(
-            "# LoL joint team recommender\n"
-            "A trained two-tower model retrieves real candidates, then a trained team model scores complete "
-            "four-player lineups jointly. Ollama generates RAG-grounded explanations on request."
-        )
+    with gr.Blocks(title=TITLE) as demo:
+        gr.HTML(HERO_HTML, css_template=HERO_CSS, elem_id="league-hero", container=False)
         result_state = gr.State({})
-
-        with gr.Row():
-            primary_role = gr.Dropdown(list(ROLE_LABELS), value="Fill", label="Finder’s primary role")
-            tier = gr.Dropdown(TIERS, value="PLATINUM", label="Your rank tier")
-            division = gr.Dropdown(DIVISIONS, value="IV", label="Your division")
-        with gr.Row():
-            candidates_per_role = gr.Slider(1, 5, value=3, step=1, label="Candidates per open role")
-            max_tier_gap = gr.Slider(0, 3, value=1, step=1, label="Maximum tier gap")
-
-        preference = gr.Textbox(
-            label="Team preference",
-            lines=3,
-            placeholder="Examples: reliable vision, objective control, experienced frontline players",
-        )
-        with gr.Accordion("Optional target champions for teammate roles", open=False):
-            gr.Markdown("Specify a champion only for a role where recorded champion history is required.")
+        gr.HTML('<div class="section-heading"><span>01</span> Configure your team</div>', css_template=SECTION_CSS)
+        with gr.Column(elem_id="finder-panel"):
             with gr.Row():
-                top_champion = gr.Textbox(label="Top champion", placeholder="Optional")
-                jungle_champion = gr.Textbox(label="Jungle champion", placeholder="Optional")
-                mid_champion = gr.Textbox(label="Mid champion", placeholder="Optional")
-            with gr.Row():
-                bottom_champion = gr.Textbox(label="Bottom champion", placeholder="Optional")
-                support_champion = gr.Textbox(label="Support champion", placeholder="Optional")
-
-        build_button = gr.Button("Build my team", variant="primary")
+                primary_role = gr.Dropdown(list(ROLE_LABELS), value="Fill", label="Your Primary Role")
+                tier = gr.Dropdown(TIERS, value="PLATINUM", label="Your rank tier")
+                division = gr.Dropdown(DIVISIONS, value="IV", label="Your division")
+            with gr.Accordion("Advanced search settings", open=False, elem_id="advanced-search-settings"):
+                with gr.Row():
+                    candidates_per_role = gr.Slider(1, 5, value=3, step=1, label="Candidates per open role")
+                    max_tier_gap = gr.Slider(0, 3, value=1, step=1, label="Maximum tier gap")
+                preference = gr.Textbox(
+                    label="Team preference", lines=3, max_length=1000, elem_id="team-preference",
+                    placeholder="What does your team need? Try reliable vision, high assists, or experienced players.",
+                )
+                gr.Markdown("**Optional target champions** — specify a champion only for a role where recorded champion history is required.")
+                with gr.Row():
+                    top_champion = gr.Textbox(label="Top champion", placeholder="Optional")
+                    jungle_champion = gr.Textbox(label="Jungle champion", placeholder="Optional")
+                    mid_champion = gr.Textbox(label="Mid champion", placeholder="Optional")
+                with gr.Row():
+                    bottom_champion = gr.Textbox(label="Bottom champion", placeholder="Optional")
+                    support_champion = gr.Textbox(label="Support champion", placeholder="Optional")
+            build_button = gr.Button("Build my team", variant="primary", elem_id="build-team")
         recommendation_output = gr.HTML(
-            value='<div class="team-results"></div>',
+            value=EMPTY_HTML,
             container=False,
             elem_id="team-results",
             css_template=APP_CSS,
+            js_on_load=CARD_SCOUT_JS,
         )
 
-        with gr.Tab("Whole-lineup RAG scout"):
-            lineup_scout_button = gr.Button("Explain why this lineup complements itself", variant="primary")
-            lineup_scout_output = gr.Markdown()
-        with gr.Tab("Candidate RAG scout"):
-            candidate_selector = gr.Dropdown(label="Recommended candidate", choices=[])
-            candidate_scout_button = gr.Button("Generate role-specific scout report")
-            candidate_scout_output = gr.Markdown()
+        gr.HTML('<div class="section-heading"><span>02</span> Scout your lineup</div>', css_template=SECTION_CSS)
+        with gr.Column(elem_id="lineup-scout-panel"):
+            lineup_scout_button = gr.Button("Explain why this lineup complements itself", variant="secondary")
+            lineup_scout_output = gr.Markdown(elem_id="lineup-scout-report")
+        gr.Markdown(
+            "Recommendations use recorded match data and trained ranking models. Scores are not win probabilities. "
+            "AI scout reports may contain errors; inspect their evidence.\n\n"
+            "Unofficial fan-made portfolio project. Not endorsed or sponsored by Riot Games.",
+            elem_id="project-note",
+        )
 
         build_button.click(
             recommend_team,
@@ -615,17 +684,19 @@ def build_app() -> gr.Blocks:
                 bottom_champion, support_champion,
             ],
             outputs=[
-                recommendation_output, result_state, candidate_selector,
-                lineup_scout_output, candidate_scout_output,
+                recommendation_output, result_state, lineup_scout_output,
             ],
+            concurrency_id="inference", concurrency_limit=1,
         )
         lineup_scout_button.click(
-            scout_lineup, inputs=[result_state], outputs=[lineup_scout_output]
+            scout_lineup_ui, inputs=[result_state], outputs=[lineup_scout_output],
+            concurrency_id="inference", concurrency_limit=1,
         )
-        candidate_scout_button.click(
-            scout_candidate,
-            inputs=[candidate_selector, result_state],
-            outputs=[candidate_scout_output],
+        recommendation_output.scout(
+            scout_card, inputs=[result_state],
+            outputs=[recommendation_output, result_state],
+            concurrency_id="inference", concurrency_limit=1,
+            scroll_to_output=False, show_progress="hidden",
         )
     return demo
 
@@ -634,7 +705,8 @@ demo = build_app()
 
 
 if __name__ == "__main__":
-    demo.queue().launch(
+    demo.queue(max_size=8, default_concurrency_limit=1).launch(
+        theme=THEME, css=GLOBAL_CSS, head=FONT_HEAD,
         server_name=os.getenv("GRADIO_SERVER_NAME", "127.0.0.1"),
         server_port=int(os.getenv("GRADIO_SERVER_PORT", "7860")),
         show_error=True,

@@ -1,7 +1,9 @@
 import pandas as pd
+import pytest
 import torch
 
 from src.recsys.engine import TwoTowerRecommendationEngine
+from src.ranks import MATCHMAKING_TIERS
 from src.recsys.team_model import (
     TeamLineupModel,
     artifact_sha256,
@@ -45,7 +47,7 @@ def _profile(player, role, tier="GOLD", champion="Lulu", matches=10):
     }
 
 
-def _engine(tmp_path, profiles, rag_weight=0.35):
+def _engine(tmp_path, profiles, rag_weight=0.35, allowed_tiers=None):
     metadata = build_metadata(profiles, embedding_dim=16, hidden_dim=32)
     model = TwoTowerModel(metadata)
     model_path = tmp_path / "model.pt"
@@ -66,6 +68,7 @@ def _engine(tmp_path, profiles, rag_weight=0.35):
         team_metadata_path=team_metadata_path,
         device="cpu",
         rag_rrf_weight=rag_weight,
+        allowed_tiers=allowed_tiers,
     )
 
 
@@ -122,3 +125,29 @@ def test_rag_rank_is_fused_only_when_preference_results_exist(tmp_path):
     )
     assert results[0]["summoner_id"] == "support-b"
     assert results[0]["rag_rank"] == 1
+
+
+def test_serving_policy_excludes_lower_ranks_even_with_wide_gap_and_rag(tmp_path):
+    profiles = pd.DataFrame([
+        _profile(tier.lower(), "SUPPORT", tier=tier)
+        for tier in ("IRON", "BRONZE", "SILVER", "GOLD", *MATCHMAKING_TIERS)
+    ])
+    engine = _engine(tmp_path, profiles, allowed_tiers=MATCHMAKING_TIERS)
+    candidates = engine.recommend_slot(
+        "MID", "SUPPORT", tier="PLATINUM", max_tier_gap=9, top_k=20,
+        rag_results=[{"summoner_id": "gold", "retrieval_similarity": 1.0}],
+    )
+    assert {candidate["tier"] for candidate in candidates} == set(MATCHMAKING_TIERS)
+    with pytest.raises(ValueError, match="Platinum or above"):
+        engine.recommend_slot("MID", "SUPPORT", tier="GOLD")
+
+
+def test_serving_policy_never_fills_team_with_lower_ranked_players(tmp_path):
+    profiles = pd.DataFrame([_profile(role.lower(), role, tier="GOLD") for role in ROLES])
+    engine = _engine(tmp_path, profiles, allowed_tiers=MATCHMAKING_TIERS)
+    result = engine.recommend_team("FILL", tier="PLATINUM", max_tier_gap=9)
+    assert result["complete"] is False
+    assert result["suggested_lineup"] == []
+    assert all(slot["candidates"] == [] for slot in result["slots"])
+    with pytest.raises(ValueError, match="Platinum or above"):
+        engine.score_lineup("MID", {role: role.lower() for role in ROLES if role != "MID"}, tier="PLATINUM")

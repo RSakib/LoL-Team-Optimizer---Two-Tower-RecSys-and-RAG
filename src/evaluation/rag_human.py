@@ -247,7 +247,7 @@ def main() -> None:
     prepare.add_argument(
         "--generate",
         action="store_true",
-        help="Call the configured local Ollama model for each real case; omitted by default.",
+        help="Call the configured local Transformers model for each real case; omitted by default.",
     )
     subparsers.add_parser("score")
     args = parser.parse_args()

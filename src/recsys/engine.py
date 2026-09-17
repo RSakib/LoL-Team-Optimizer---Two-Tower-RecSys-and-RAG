@@ -46,7 +46,10 @@ class TwoTowerRecommendationEngine:
         device: str = TWO_TOWER_DEVICE,
         rag_rrf_weight: float = RAG_RRF_WEIGHT,
         lineup_pool_size: int = 6,
+        allowed_tiers: tuple[str, ...] | None = None,
     ):
+        # Optional serving policy; offline evaluation keeps historical ranks intact.
+        self.allowed_tiers = allowed_tiers
         self.profiles = profiles.copy().reset_index(drop=True)
         self.loaded = LoadedTwoTower.load(model_path, metadata_path, device)
         self.rag_rrf_weight = max(0.0, float(rag_rrf_weight))
@@ -81,7 +84,12 @@ class TwoTowerRecommendationEngine:
             (self.profiles["role"].fillna("").astype(str).str.upper() == target_role)
             & self.team_bank.valid
         ].to_numpy(dtype=np.int64)
+        if self.allowed_tiers is not None:
+            candidate_tiers = self.profiles.loc[eligible, "tier"].fillna("").astype(str).str.upper()
+            eligible = eligible[candidate_tiers.isin(self.allowed_tiers).to_numpy()]
         requested_tier = str(tier).upper() if tier else None
+        if requested_tier and self.allowed_tiers is not None and requested_tier not in self.allowed_tiers:
+            raise ValueError("Finder rank must be Platinum or above")
         if requested_tier:
             target_tier = TIER_ORDER.get(requested_tier)
             if target_tier is None:
@@ -93,7 +101,7 @@ class TwoTowerRecommendationEngine:
                 candidate_tiers = self.profiles.loc[eligible, "tier"].fillna("").astype(str).str.upper()
                 keep = candidate_tiers.map(
                     lambda value: value in TIER_ORDER and abs(TIER_ORDER[value] - target_tier) <= max_tier_gap
-                ).to_numpy()
+                ).to_numpy(dtype=bool)
                 eligible = eligible[keep]
         if division:
             candidate_divisions = self.profiles.loc[eligible, "rank"].fillna("").astype(str).str.upper()
@@ -223,6 +231,8 @@ class TwoTowerRecommendationEngine:
             ]
             if match.empty:
                 raise ValueError(f"No matching real {role} profile found for {player_id}")
+            if self.allowed_tiers is not None and str(match.iloc[0].get("tier", "")).upper() not in self.allowed_tiers:
+                raise ValueError("Lineup players must be Platinum or above")
             row = self._serialise(match.iloc[0].to_dict())
             row.update({
                 "slot_role": role,

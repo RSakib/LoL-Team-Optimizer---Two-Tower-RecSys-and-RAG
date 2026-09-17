@@ -115,7 +115,15 @@ class RealPlayerVectorStore:
         self._query_embedding_cache[query] = embedding
         return embedding
 
-    def rebuild(self, profiles: pd.DataFrame) -> int:
+    def rebuild(self, profiles: pd.DataFrame, precomputed_path: Path | None = None) -> int:
+        vectors = None
+        if precomputed_path is not None:
+            from src.rag.portable import load_embeddings
+            # Validate before touching an existing index. Never re-encode on failure.
+            vectors = load_embeddings(
+                precomputed_path, profiles, self.embedding_model_name,
+                self.PIPELINE_VERSION, self._fingerprint(profiles),
+            )
         existing = self.collection.get(include=[]).get("ids", [])
         if existing:
             self.collection.delete(ids=existing)
@@ -123,10 +131,13 @@ class RealPlayerVectorStore:
             return 0
         records = profiles.to_dict("records")
         embedding_dimensions: int | None = None
-        for start in range(0, len(records), self.batch_size):
-            batch = records[start:start + self.batch_size]
+        # Imported vectors need no transformer activations; use modest larger
+        # writes to avoid one database transaction per tiny encoding batch.
+        write_batch_size = 256 if vectors is not None else self.batch_size
+        for start in range(0, len(records), write_batch_size):
+            batch = records[start:start + write_batch_size]
             documents = [str(row["rag_document"]) for row in batch]
-            embeddings = self._encode_documents(documents)
+            embeddings = vectors[start:start + len(batch)] if vectors is not None else self._encode_documents(documents)
             embedding_dimensions = int(embeddings.shape[1])
             self.collection.add(
                 ids=[str(row["summoner_id"]) for row in batch], documents=documents,

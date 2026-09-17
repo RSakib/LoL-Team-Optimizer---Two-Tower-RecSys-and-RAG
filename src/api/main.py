@@ -14,13 +14,11 @@ from src.llm.scout import (
 )
 from src.recsys.engine import ROLES
 from src.service import get_runtime
+from src.ranks import MatchmakingTier, MATCHMAKING_TIERS
 
 
 QueueRole = Literal["TOP", "JUNGLE", "MID", "BOTTOM", "SUPPORT", "FILL"]
-RankTier = Literal[
-    "IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD",
-    "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER",
-]
+RankTier = MatchmakingTier
 
 app = FastAPI(title="LoL Joint Team Recommender & RAG Scout", version="4.0.0")
 
@@ -30,8 +28,8 @@ class TeamRecommendRequest(BaseModel):
     target_champions: dict[str, str] = Field(default_factory=dict)
     tier: RankTier
     rank: str | None = None
-    preference: str = ""
-    candidates_per_role: int = Field(default=3, ge=1, le=10)
+    preference: str = Field(default="", max_length=1000)
+    candidates_per_role: int = Field(default=3, ge=1, le=5)
     max_tier_gap: int = Field(default=1, ge=0, le=9)
 
 
@@ -39,16 +37,16 @@ class ScoutRequest(BaseModel):
     summoner_id: str
     slot_role: str | None = None
     target_champion: str | None = None
-    preference: str = ""
+    preference: str = Field(default="", max_length=1000)
 
 
 class TeamScoutRequest(BaseModel):
     primary_role: Literal["TOP", "JUNGLE", "MID", "BOTTOM", "SUPPORT"]
     lineup: dict[str, str]
-    tier: str | None = None
+    tier: RankTier | None = None
     rank: str | None = None
     target_champions: dict[str, str] = Field(default_factory=dict)
-    preference: str = ""
+    preference: str = Field(default="", max_length=1000)
 
 
 @app.get("/health")
@@ -132,6 +130,8 @@ def scout(request: ScoutRequest) -> dict[str, Any]:
     match = runtime.profiles[runtime.profiles["summoner_id"].astype(str) == request.summoner_id]
     if match.empty:
         raise HTTPException(status_code=404, detail="No matching real candidate found")
+    if str(match.iloc[0].get("tier", "")).upper() not in MATCHMAKING_TIERS:
+        raise HTTPException(status_code=422, detail="Matchmaking and scouting require Platinum or above")
     evidence = runtime.vector_store.get_profile_document(request.summoner_id)
     if evidence is None or not evidence["rag_document"]:
         raise HTTPException(

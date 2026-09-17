@@ -1,0 +1,23 @@
+# Do NOT include .gitignore: it may exclude trained artifacts needed in the image.
+*
+!Dockerfile
+!.dockerignore
+!.gcloudignore
+!requirements.txt
+!app.py
+!src/
+!src/**
+!assets/
+!assets/**
+!artifacts/
+!artifacts/**
+!deployment/
+!deployment/**
+!scripts/
+!scripts/preload_models.py
+**/__pycache__/**
+**/*.pyc
+**/.env
+**/.env.*
+**/*.pem
+**/*.key

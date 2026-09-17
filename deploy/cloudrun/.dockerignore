@@ -1,0 +1,22 @@
+# Deny by default; keep only the portable real-data application.
+**
+!Dockerfile
+!.dockerignore
+!requirements.txt
+!app.py
+!src/
+!src/**
+!assets/
+!assets/**
+!artifacts/
+!artifacts/**
+!deployment/
+!deployment/**
+!scripts/
+!scripts/preload_models.py
+**/__pycache__/**
+**/*.pyc
+**/.env
+**/.env.*
+**/*.pem
+**/*.key

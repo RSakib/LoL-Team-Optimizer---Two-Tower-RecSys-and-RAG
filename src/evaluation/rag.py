@@ -184,7 +184,7 @@ def write_report(report: dict[str, Any]) -> None:
     lines.extend([
         "", "## Limitations", "",
         "- Labels are deterministic judgments derived from real profile fields, not human preference ratings.",
-        "- This evaluates retrieval, not the local Ollama-generated scout prose.",
+        "- This evaluates retrieval, not the local language-model-generated scout prose.",
         "- Scout quality still requires a human rubric for grounding, usefulness, and unsupported claims.",
     ])
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)

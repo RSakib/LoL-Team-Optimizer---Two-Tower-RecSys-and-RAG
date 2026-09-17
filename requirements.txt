@@ -9,7 +9,9 @@ pyarrow>=18,<26
 pydantic>=2.10,<3
 requests>=2.32,<3
 scikit-learn>=1.5,<2
-gradio>=5.0,<7
-torch>=2.6,<3
+gradio==6.27.0
+torch==2.13.0
+transformers==5.16.1
+spaces>=0.40,<1
 uvicorn[standard]>=0.34,<1
 pytest>=8.3,<10

@@ -29,5 +29,5 @@ attributes, and relevance labels come from recorded role-relative statistics or 
 ## Limitations
 
 - Labels are deterministic judgments derived from real profile fields, not human preference ratings.
-- This evaluates retrieval, not the local Ollama-generated scout prose.
+- This evaluates retrieval, not the local language-model-generated scout prose. The replacement Qwen generator has not yet received a human quality evaluation.
 - Scout quality still requires a human rubric for grounding, usefulness, and unsupported claims.

@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import pandas as pd
+import pytest
 from fastapi.testclient import TestClient
 
 import src.api.main as api_module
@@ -12,7 +13,7 @@ def _profiles() -> pd.DataFrame:
         {
             "summoner_id": f"player-{role.lower()}",
             "player_name": f"Player {role}",
-            "tier": "GOLD",
+            "tier": "PLATINUM",
             "rank": "I",
             "role": role,
             "rag_document": "real profile",
@@ -91,19 +92,19 @@ def test_health_reports_configured_scout_provider(monkeypatch):
     monkeypatch.setattr(
         api_module,
         "scout_generation_status",
-        lambda: {"provider": "ollama", "model": "gemma3:4b", "configured": True},
+        lambda: {"provider": "local_transformers", "model": "Qwen/Qwen2.5-0.5B-Instruct", "configured": True},
     )
     response = TestClient(api_module.app).get("/health")
     assert response.status_code == 200
-    assert response.json()["scout_generation_provider"] == "ollama"
-    assert response.json()["scout_generation_model"] == "gemma3:4b"
+    assert response.json()["scout_generation_provider"] == "local_transformers"
+    assert response.json()["scout_generation_model"] == "Qwen/Qwen2.5-0.5B-Instruct"
 
 
 def test_team_endpoint_returns_four_open_role_slots(monkeypatch):
     monkeypatch.setattr(api_module, "get_runtime", _runtime)
     response = TestClient(api_module.app).post(
         "/team/recommend",
-        json={"primary_role": "MID", "tier": "GOLD", "candidates_per_role": 1},
+        json={"primary_role": "MID", "tier": "PLATINUM", "candidates_per_role": 1},
     )
     assert response.status_code == 200
     payload = response.json()
@@ -118,7 +119,7 @@ def test_team_endpoint_accepts_fill(monkeypatch):
     monkeypatch.setattr(api_module, "get_runtime", _runtime)
     response = TestClient(api_module.app).post(
         "/team/recommend",
-        json={"primary_role": "FILL", "tier": "IRON", "candidates_per_role": 1},
+        json={"primary_role": "FILL", "tier": "PLATINUM", "candidates_per_role": 1},
     )
     assert response.status_code == 200
     assert response.json()["team"]["fill_assignment"] in ROLES
@@ -131,6 +132,17 @@ def test_team_endpoint_requires_a_rank_tier(monkeypatch):
         json={"primary_role": "FILL", "candidates_per_role": 1},
     )
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize("tier", ["IRON", "BRONZE", "SILVER", "GOLD"])
+def test_live_api_rejects_ranks_below_platinum_before_loading_models(monkeypatch, tier):
+    def unexpected_runtime():
+        raise AssertionError("invalid ranks must be rejected before loading models")
+
+    monkeypatch.setattr(api_module, "get_runtime", unexpected_runtime)
+    for route in ("/team/recommend", "/recommend"):
+        response = TestClient(api_module.app).post(route, json={"primary_role": "FILL", "tier": tier})
+        assert response.status_code == 422
 
 
 def test_scout_uses_exact_chroma_evidence(monkeypatch):
@@ -174,3 +186,30 @@ def test_team_scout_uses_four_exact_chroma_profiles(monkeypatch):
         item["rag_document"] == "indexed real profile"
         for item in captured["retrieved_real_profiles"]
     )
+
+
+def test_cached_scout_still_retrieves_and_rejects_missing_current_evidence(monkeypatch):
+    from src.llm import scout
+    runtime = _runtime()
+    reads, generations = [], []
+    available = [True]
+
+    def get_document(player_id):
+        reads.append(player_id)
+        return {"rag_document": "indexed evidence", "metadata": {}} if available[0] else None
+
+    monkeypatch.setattr(runtime.vector_store, "get_profile_document", get_document)
+    monkeypatch.setattr(api_module, "get_runtime", lambda: runtime)
+    monkeypatch.setattr(scout, "generate_text", lambda messages: generations.append(messages) or "report")
+    scout.clear_scout_cache()
+    try:
+        client = TestClient(api_module.app)
+        payload = {"summoner_id": "player-mid", "slot_role": "MID"}
+        assert client.post("/scout", json=payload).status_code == 200
+        assert client.post("/scout", json=payload).status_code == 200
+        assert len(reads) == 2 and len(generations) == 1
+        available[0] = False
+        assert client.post("/scout", json=payload).status_code == 503
+        assert len(reads) == 3 and len(generations) == 1
+    finally:
+        scout.clear_scout_cache()
